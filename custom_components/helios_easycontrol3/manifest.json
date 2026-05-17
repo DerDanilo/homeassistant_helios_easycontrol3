@@ -1,0 +1,18 @@
+{
+  "domain": "helios_easycontrol3",
+  "name": "Helios easyControls 3.0",
+  "codeowners": [
+    "@derdanilo"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/derdanilo/homeassistant_helios_easycontrol3",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/derdanilo/homeassistant_helios_easycontrol3/issues",
+  "requirements": [
+    "websockets>=13.1",
+    "python-dateutil>=2.8.2"
+  ],
+  "version": "1.0.0"
+}

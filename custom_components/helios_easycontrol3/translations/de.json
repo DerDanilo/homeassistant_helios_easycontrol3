@@ -1,0 +1,110 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Helios easyControls 3.0 hinzufügen",
+        "description": "IP-Adresse oder Hostname der KWL eingeben.",
+        "data": {
+          "host": "Host (IP oder Name)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zur KWL fehlgeschlagen. Stimmt die IP, ist das Gerät an?",
+      "invalid_host": "Ungültiger Host"
+    },
+    "abort": {
+      "already_configured": "Diese KWL ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Helios easyControls 3.0 Optionen",
+        "data": {
+          "scan_interval": "Abfrage-Intervall (Sekunden, 5-600)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "outdoor_temp":             { "name": "Lufttemperatur - Außenluft" },
+      "supply_temp":              { "name": "Lufttemperatur - Zuluft" },
+      "extract_temp":             { "name": "Lufttemperatur - Abluft" },
+      "exhaust_temp":             { "name": "Lufttemperatur - Fortluft" },
+      "current_fan_speed":        { "name": "Aktuelle Lüfterleistung" },
+      "supply_fan_rpm":           { "name": "Lüfterdrehzahl - Zuluft" },
+      "extract_fan_rpm":          { "name": "Lüfterdrehzahl - Abluft" },
+      "humidity":                 { "name": "Relative Luftfeuchte" },
+      "co2":                      { "name": "CO₂" },
+      "humidity_sensor_slot":     { "name": "Feuchtesensor - {slot}" },
+      "co2_sensor_slot":          { "name": "CO₂-Sensor - {slot}" },
+      "cell_state":               { "name": "Wärmetauscher-Status" },
+      "filter_changed":           { "name": "Filterwechsel - Letzter" },
+      "filter_due":               { "name": "Filterwechsel - Nächster" },
+      "operating_time":           { "name": "Betriebszeit" },
+      "last_power_interruption":  { "name": "Letzte Stromunterbrechung" },
+      "rh_sensor_count":          { "name": "Sensoranzahl - Feuchte" },
+      "co2_sensor_count":         { "name": "Sensoranzahl - CO₂/VOC" },
+      "ip_address":               { "name": "IP - Adresse" },
+      "gateway":                  { "name": "IP - Gateway" },
+      "netmask":                  { "name": "IP - Subnetzmaske" },
+      "uuid":                     { "name": "UUID" },
+      "sidedness":                { "name": "Ausrichtung" },
+      "relay_mode":               { "name": "Relais - Modus" },
+      "io_bypass":                { "name": "IO - Bypass-Position" },
+      "io_supply_fan":            { "name": "IO - Zuluft-Ventilator" },
+      "io_extract_fan":           { "name": "IO - Abluft-Ventilator" },
+      "io_heater":                { "name": "IO - Heizung" },
+      "io_extra_heater":          { "name": "IO - Zusatzheizung" },
+      "io_error":                 { "name": "IO - Fehler-Flags" },
+      "last_successful_update":   { "name": "Konnektivität - Letzte erfolgreiche Aktualisierung" },
+      "connection_stability":     { "name": "Konnektivität - Stabilität" },
+      "consecutive_failures":     { "name": "Konnektivität - Aufeinanderfolgende Fehler" },
+      "total_failures":           { "name": "Konnektivität - Fehler gesamt" }
+    },
+    "binary_sensor": {
+      "defrosting":               { "name": "Modus - Abtauung aktiv" },
+      "boost_active":             { "name": "Modus - Intensiv aktiv" },
+      "individual_mode_active":   { "name": "Modus - Individuell aktiv" },
+      "device_enabled":           { "name": "Modus - Lüftung aktiv" },
+      "partial_bypass":           { "name": "Bypass - Stufenlos aktiv" },
+      "bypass_locked":            { "name": "Bypass - Gesperrt" },
+      "weekly_timer_enabled":     { "name": "Wochenprogramm aktiv" },
+      "cloud_connected":          { "name": "Cloud verbunden" },
+      "kwl_reachable":            { "name": "Konnektivität - KWL erreichbar" }
+    },
+    "number": {
+      "home_speed":                  { "name": "Lüfterleistung (Zuhause)" },
+      "away_speed":                  { "name": "Lüfterleistung (Unterwegs)" },
+      "boost_speed":                 { "name": "Lüfterleistung (Intensiv)" },
+      "individual_supply_speed":     { "name": "Lüfterleistung (Individuell) - Zuluft" },
+      "individual_extract_speed":    { "name": "Lüfterleistung (Individuell) - Abluft" },
+      "home_air_temp":               { "name": "Zulufttemperatur (Zuhause)" },
+      "away_air_temp":               { "name": "Zulufttemperatur (Unterwegs)" },
+      "boost_air_temp":              { "name": "Zulufttemperatur (Intensiv)" },
+      "individual_air_temp":         { "name": "Zulufttemperatur (Individuell)" },
+      "filter_change_interval_months": { "name": "Filterwechsel - Intervall (Monate)" }
+    },
+    "switch": {
+      "main_power":                  { "name": "Hauptschalter" },
+      "weekly_timer_enabled":        { "name": "Wochenprogramm aktiv" },
+      "vacation_active":             { "name": "Urlaubsmodus aktiv" },
+      "cool_recovery_enabled":       { "name": "Kälterückgewinnung" },
+      "cool_recovery_plug_confirmed":{ "name": "Kälterückgewinnung - Stopfen entfernt" }
+    },
+    "select": {
+      "mode": {
+        "name": "Betriebsmodus"
+      }
+    },
+    "time": {
+      "duration_boost":              { "name": "Dauer (Intensiv)" },
+      "duration_individual":         { "name": "Dauer (Individuell)" }
+    },
+    "button": {
+      "reset_filter":                { "name": "Filterwechsel - Auf heute zurücksetzen" }
+    }
+  }
+}

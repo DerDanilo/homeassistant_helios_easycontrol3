@@ -1,0 +1,304 @@
+# =========================================================================
+# Helios easyControls 3.0 — Lovelace Dashboard Template
+# =========================================================================
+# Drop this into a new dashboard view (Settings -> Dashboards -> + Add).
+#
+# REQUIRED HACS CARDS:
+#   - mushroom (https://github.com/piitaya/lovelace-mushroom)
+#
+# ENTITY-ID NAMING CONVENTION:
+# This template uses the entity_id slug "helios_kwl_250_w" which
+# matches a default install where the device shows as "Helios KWL 250 W
+#". If your KWL is a different model (KWL 300 W ET, etc.) or you
+# renamed the device, do a global find&replace of
+#     helios_kwl_250_w
+# with your actual device slug. Easiest way: open one of your KWL entities
+# in HA, copy the entity_id, take the part between the dot and the entity
+# key, and replace globally.
+#
+# SAFETY PATTERN:
+# Main Power and Cool Recovery use tap_action: more-info instead of toggle,
+# and hold_action with confirmation. This prevents accidental shutdown of
+# the whole ventilation by a stray tap. Adjust as you like.
+#
+# Tabs: 1) Overview, 2) Per-Mode Settings, 3) Schedule & Filter,
+#       4) Diagnostics & Connectivity
+# =========================================================================
+
+views:
+
+  # ---------------------------------------------------------------------
+  # Tab 1: OVERVIEW — at-a-glance status + quick controls
+  # ---------------------------------------------------------------------
+  - title: KWL
+    path: kwl
+    icon: mdi:fan
+    type: sidebar
+    badges: []
+    cards:
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Helios KWL
+            subtitle: Ventilation · Climate · Control · Maintenance
+
+          # Quick chips — current status at a glance
+          - type: custom:mushroom-chips-card
+            alignment: center
+            chips:
+              # Main Power: tap = open details (NO direct toggle), hold = confirm-toggle
+              - type: entity
+                entity: switch.helios_kwl_250_w_main_power
+                icon: mdi:power
+                content_info: state
+                tap_action:
+                  action: more-info
+                hold_action:
+                  action: toggle
+                  confirmation:
+                    text: "Really toggle KWL main power?"
+              - type: entity
+                entity: select.helios_kwl_250_w_mode
+                icon: mdi:state-machine
+                content_info: state
+              - type: entity
+                entity: sensor.helios_kwl_250_w_current_fan_power_level
+                icon: mdi:fan
+                content_info: state
+              - type: entity
+                entity: binary_sensor.helios_kwl_250_w_kwl_reachable
+                icon: mdi:lan-connect
+                content_info: state
+
+          # Mode select (big)
+          - type: tile
+            entity: select.helios_kwl_250_w_mode
+            name: Operating Mode
+            icon: mdi:state-machine
+
+          # Live temperatures
+          - type: entities
+            title: Air Temperatures
+            icon: mdi:thermometer
+            entities:
+              - entity: sensor.helios_kwl_250_w_air_temperature_outdoor
+                name: Outdoor
+              - entity: sensor.helios_kwl_250_w_air_temperature_supply
+                name: Supply
+              - entity: sensor.helios_kwl_250_w_air_temperature_extract
+                name: Extract
+              - entity: sensor.helios_kwl_250_w_air_temperature_exhaust
+                name: Exhaust
+
+          # Fan RPMs
+          - type: entities
+            title: Fan RPM
+            icon: mdi:fan
+            entities:
+              - entity: sensor.helios_kwl_250_w_fan_rpm_supply
+                name: Supply
+              - entity: sensor.helios_kwl_250_w_fan_rpm_extract
+                name: Extract
+
+          # Air quality
+          - type: entities
+            title: Air Quality
+            icon: mdi:air-filter
+            entities:
+              - entity: sensor.helios_kwl_250_w_relative_humidity
+                name: Humidity
+              - entity: sensor.helios_kwl_250_w_co2
+                name: CO₂
+
+  # ---------------------------------------------------------------------
+  # Tab 2: PER-MODE SETPOINTS
+  # ---------------------------------------------------------------------
+  - title: Modes
+    path: modes
+    icon: mdi:tune
+    badges: []
+    cards:
+
+      - type: custom:mushroom-title-card
+        title: Per-Mode Setpoints
+        subtitle: Fan power level and supply-air target per operating mode
+
+      - type: entities
+        title: Home Mode
+        icon: mdi:home
+        entities:
+          - entity: number.helios_kwl_250_w_fan_power_level_home
+            name: Fan Power Level
+          - entity: number.helios_kwl_250_w_supply_air_target_home
+            name: Supply Air Target
+
+      - type: entities
+        title: Away Mode
+        icon: mdi:home-export-outline
+        entities:
+          - entity: number.helios_kwl_250_w_fan_power_level_away
+            name: Fan Power Level
+          - entity: number.helios_kwl_250_w_supply_air_target_away
+            name: Supply Air Target
+
+      - type: entities
+        title: Boost Mode
+        icon: mdi:fan-plus
+        entities:
+          - entity: number.helios_kwl_250_w_fan_power_level_boost
+            name: Fan Power Level
+          - entity: number.helios_kwl_250_w_supply_air_target_boost
+            name: Supply Air Target
+          - entity: time.helios_kwl_250_w_duration_boost
+            name: Duration
+
+      - type: entities
+        title: Individual Mode
+        icon: mdi:account-tie
+        entities:
+          - entity: number.helios_kwl_250_w_fan_power_level_individual_supply
+            name: Supply Fan Power Level
+          - entity: number.helios_kwl_250_w_fan_power_level_individual_extract
+            name: Extract Fan Power Level
+          - entity: number.helios_kwl_250_w_supply_air_target_individual
+            name: Supply Air Target
+          - entity: time.helios_kwl_250_w_duration_individual
+            name: Duration
+
+      - type: entities
+        title: Bypass & Heat Exchanger
+        icon: mdi:valve
+        entities:
+          - entity: binary_sensor.helios_kwl_250_w_stepless_bypass
+            name: Stepless Bypass Active
+          - entity: binary_sensor.helios_kwl_250_w_bypass_locked
+            name: Bypass Locked (read-only)
+          - entity: sensor.helios_kwl_250_w_heat_exchanger_state
+            name: Heat Exchanger State
+
+      # Cool Recovery with the same safety pattern as Main Power.
+      # Toggling cool recovery without the physical plug being removed is
+      # a no-op at the hardware level — see README for the safety logic.
+      - type: entities
+        title: Cool Recovery
+        icon: mdi:snowflake-thermometer
+        entities:
+          - entity: switch.helios_kwl_250_w_cool_recovery_plug_confirmed
+            name: Plug Confirmed (physical plug removed?)
+          - type: custom:mushroom-entity-card
+            entity: switch.helios_kwl_250_w_cool_recovery
+            name: Cool Recovery
+            tap_action:
+              action: more-info
+            hold_action:
+              action: toggle
+              confirmation:
+                text: "Really toggle Cool Recovery? The physical plug must be removed first."
+
+  # ---------------------------------------------------------------------
+  # Tab 3: SCHEDULE & FILTER
+  # ---------------------------------------------------------------------
+  - title: Schedule
+    path: schedule
+    icon: mdi:calendar-clock
+    badges: []
+    cards:
+
+      - type: custom:mushroom-title-card
+        title: Weekly Schedule & Filter
+        subtitle: Maintenance & automation
+
+      - type: entities
+        title: Weekly Schedule
+        icon: mdi:calendar-clock
+        entities:
+          - entity: switch.helios_kwl_250_w_weekly_schedule_enabled
+            name: Weekly Schedule Active
+
+      - type: entities
+        title: Filter
+        icon: mdi:air-filter
+        entities:
+          - entity: number.helios_kwl_250_w_filter_change_interval
+            name: Change Interval (months)
+          - entity: sensor.helios_kwl_250_w_filter_change_last
+            name: Last Change
+          - entity: sensor.helios_kwl_250_w_filter_change_next
+            name: Next Change Due
+          - entity: button.helios_kwl_250_w_reset_filter_change_date
+            name: Reset to Today
+
+  # ---------------------------------------------------------------------
+  # Tab 4: DIAGNOSTICS
+  # ---------------------------------------------------------------------
+  - title: Diagnostics
+    path: diag
+    icon: mdi:stethoscope
+    badges: []
+    cards:
+
+      - type: custom:mushroom-title-card
+        title: Diagnostics & Connectivity
+
+      - type: entities
+        title: Device
+        entities:
+          - entity: sensor.helios_kwl_250_w_operating_time
+            name: Operating Time
+          - entity: sensor.helios_kwl_250_w_last_power_interruption
+            name: Last Power Interruption
+          - entity: sensor.helios_kwl_250_w_uuid
+            name: UUID
+          - entity: sensor.helios_kwl_250_w_orientation
+            name: Orientation
+          - entity: sensor.helios_kwl_250_w_humidity_sensors
+            name: Humidity Sensors (count)
+          - entity: sensor.helios_kwl_250_w_co2_voc_sensors
+            name: CO2/VOC Sensors (count)
+
+      - type: entities
+        title: Network
+        entities:
+          - entity: sensor.helios_kwl_250_w_ip_address
+            name: IP - Address
+          - entity: sensor.helios_kwl_250_w_ip_gateway
+            name: IP - Gateway
+          - entity: sensor.helios_kwl_250_w_ip_subnet_mask
+            name: IP - Subnet Mask
+
+      - type: entities
+        title: Connectivity
+        entities:
+          - entity: binary_sensor.helios_kwl_250_w_kwl_reachable
+            name: KWL Reachable
+          - entity: sensor.helios_kwl_250_w_connection_stability
+            name: Connection Stability (60-slot rolling)
+          - entity: sensor.helios_kwl_250_w_consecutive_failures
+            name: Consecutive Failures
+          - entity: sensor.helios_kwl_250_w_total_failures
+            name: Total Failures
+
+      - type: entities
+        title: IO State (raw)
+        icon: mdi:chip
+        entities:
+          - entity: sensor.helios_kwl_250_w_io_bypass_position
+            name: Bypass Position
+          - entity: sensor.helios_kwl_250_w_io_supply_fan
+            name: Supply Fan IO
+          - entity: sensor.helios_kwl_250_w_io_extract_fan
+            name: Extract Fan IO
+          - entity: sensor.helios_kwl_250_w_io_heater
+            name: Heater IO
+          - entity: sensor.helios_kwl_250_w_io_extra_heater
+            name: Extra Heater IO
+          - entity: sensor.helios_kwl_250_w_io_error_flags
+            name: Error Flags
+          - entity: sensor.helios_kwl_250_w_relay_mode
+            name: Relay Mode
+
+      - type: entities
+        title: Cloud
+        entities:
+          - entity: binary_sensor.helios_kwl_250_w_cloud_connected
+            name: easyControls Cloud Connected

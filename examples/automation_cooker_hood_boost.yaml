@@ -1,0 +1,119 @@
+# =========================================================================
+# Example Automation: Boost KWL while cooker hood is running, restore
+# original mode afterwards (with follow-up ventilation).
+# =========================================================================
+#
+# WHAT IT DOES
+#   When the cooker hood draws > 50 W for 15 seconds, the KWL switches to
+#   "Boost" mode. Once the hood has been off for 1 minute, the integration
+#   keeps boosting for another 15 minutes (follow-up ventilation to clear
+#   the remaining cooking fumes), then restores whatever mode the KWL was
+#   in before the cooking session.
+#
+# REQUIREMENTS
+#   1. A power sensor for your cooker hood (Shelly EM, Smart Plug, etc.).
+#      Replace `sensor.cooker_hood_power` with your actual entity.
+#
+#   2. An input_text helper to remember the KWL's mode before the boost.
+#      Create it in Settings -> Devices & Services -> Helpers -> Add Helper
+#      -> Text, name it e.g. "KWL Previous Mode", and use its entity_id
+#      below (default: `input_text.kwl_previous_mode`).
+#
+#      Or define via YAML in configuration.yaml:
+#
+#        input_text:
+#          kwl_previous_mode:
+#            name: KWL Previous Mode
+#            max: 50
+#
+#   3. The KWL select entity. The default below assumes the integration's
+#      auto-generated entity_id `select.helios_kwl_250_w_mode`. Adapt to
+#      match your device's slug.
+#
+# NOTES
+#   - `mode: restart` means: if the cooker hood goes off and on quickly,
+#     the automation cancels the previous run and starts over. The memory
+#     of the original mode is preserved.
+#   - The "Previous Mode" memory is only written when it's empty — so if
+#     you start cooking, then start a second cycle before follow-up
+#     finishes, the original mode (from BEFORE the first cycle) is kept.
+#   - At the end the memory text is cleared, so the next cooking session
+#     starts fresh.
+# =========================================================================
+
+- id: kwl_cooker_hood_boost
+  alias: "KWL — Boost while cooker hood runs (with follow-up + mode restore)"
+  description: >-
+    Switch KWL to Boost when the cooker hood draws power. After the hood
+    stops and 15 min of follow-up ventilation, restore the previous mode.
+  mode: restart
+  triggers:
+    - trigger: numeric_state
+      entity_id: sensor.cooker_hood_power
+      above: 50
+      for:
+        hours: 0
+        minutes: 0
+        seconds: 15
+  conditions: []
+  actions:
+    - variables:
+        kwl_entity: select.helios_kwl_250_w_mode
+        kwl_mem: input_text.kwl_previous_mode
+
+    # Step 1: If we don't have a remembered mode yet (= fresh boost cycle),
+    # store the current mode so we can restore it later.
+    - if:
+        - condition: template
+          value_template: "{{ states(kwl_mem) in ['', 'unknown', 'unavailable'] }}"
+      then:
+        - action: input_text.set_value
+          data:
+            entity_id: "{{ kwl_mem }}"
+            value: "{{ states(kwl_entity) }}"
+
+    # Step 2: Switch KWL to Boost unless it's already there.
+    - if:
+        - condition: template
+          value_template: "{{ states(kwl_entity) != 'Boost' }}"
+      then:
+        - action: select.select_option
+          target:
+            entity_id: "{{ kwl_entity }}"
+          data:
+            option: Boost
+
+    # Step 3: Wait for cooker hood to be off for at least 1 minute.
+    - wait_for_trigger:
+        - trigger: numeric_state
+          entity_id: sensor.cooker_hood_power
+          below: 50
+          for:
+            hours: 0
+            minutes: 1
+            seconds: 0
+
+    # Step 4: Follow-up ventilation — keep boosting for 15 more minutes
+    # to clear out remaining cooking fumes.
+    - delay:
+        hours: 0
+        minutes: 15
+        seconds: 0
+
+    # Step 5: Restore the previous mode — but ONLY if we're still on Boost
+    # (the user might have manually changed it in the meantime; don't override).
+    - if:
+        - condition: template
+          value_template: "{{ states(kwl_entity) == 'Boost' }}"
+      then:
+        - action: select.select_option
+          target:
+            entity_id: "{{ kwl_entity }}"
+          data:
+            option: "{{ states(kwl_mem) }}"
+
+    # Step 6: Clear the memory so the next cooking session starts fresh.
+    - action: input_text.set_value
+      data:
+        entity_id: "{{ kwl_mem }}"
+        value: ""

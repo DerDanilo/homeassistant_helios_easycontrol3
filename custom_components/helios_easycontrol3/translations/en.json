@@ -1,0 +1,110 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add Helios easyControls 3.0",
+        "description": "Enter the IP address or hostname of the KWL.",
+        "data": {
+          "host": "Host (IP or name)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Connection to the KWL failed. Is the IP correct, is the device powered on?",
+      "invalid_host": "Invalid host"
+    },
+    "abort": {
+      "already_configured": "This KWL is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Helios easyControls 3.0 options",
+        "data": {
+          "scan_interval": "Polling interval (seconds, 5-600)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "outdoor_temp":             { "name": "Air Temperature - Outdoor" },
+      "supply_temp":              { "name": "Air Temperature - Supply" },
+      "extract_temp":             { "name": "Air Temperature - Extract" },
+      "exhaust_temp":             { "name": "Air Temperature - Exhaust" },
+      "current_fan_speed":        { "name": "Current Fan Power Level" },
+      "supply_fan_rpm":           { "name": "Fan RPM - Supply" },
+      "extract_fan_rpm":          { "name": "Fan RPM - Extract" },
+      "humidity":                 { "name": "Relative Humidity" },
+      "co2":                      { "name": "CO2" },
+      "humidity_sensor_slot":     { "name": "Humidity Sensor - {slot}" },
+      "co2_sensor_slot":          { "name": "CO2 Sensor - {slot}" },
+      "cell_state":               { "name": "Heat Exchanger State" },
+      "filter_changed":           { "name": "Filter Change - Last" },
+      "filter_due":               { "name": "Filter Change - Next" },
+      "operating_time":           { "name": "Operating Time" },
+      "last_power_interruption":  { "name": "Last Power Interruption" },
+      "rh_sensor_count":          { "name": "Sensor Count - Humidity" },
+      "co2_sensor_count":         { "name": "Sensor Count - CO2/VOC" },
+      "ip_address":               { "name": "IP - Address" },
+      "gateway":                  { "name": "IP - Gateway" },
+      "netmask":                  { "name": "IP - Subnet Mask" },
+      "uuid":                     { "name": "UUID" },
+      "sidedness":                { "name": "Orientation" },
+      "relay_mode":               { "name": "Relay - Mode" },
+      "io_bypass":                { "name": "IO - Bypass Position" },
+      "io_supply_fan":            { "name": "IO - Supply Fan" },
+      "io_extract_fan":           { "name": "IO - Extract Fan" },
+      "io_heater":                { "name": "IO - Heater" },
+      "io_extra_heater":          { "name": "IO - Extra Heater" },
+      "io_error":                 { "name": "IO - Error Flags" },
+      "last_successful_update":   { "name": "Connectivity - Last Successful Update" },
+      "connection_stability":     { "name": "Connectivity - Stability" },
+      "consecutive_failures":     { "name": "Connectivity - Consecutive Failures" },
+      "total_failures":           { "name": "Connectivity - Total Failures" }
+    },
+    "binary_sensor": {
+      "defrosting":               { "name": "Mode - Defrosting Active" },
+      "boost_active":             { "name": "Mode - Boost Active" },
+      "individual_mode_active":   { "name": "Mode - Individual Active" },
+      "device_enabled":           { "name": "Mode - Ventilation Active" },
+      "partial_bypass":           { "name": "Bypass - Stepless Active" },
+      "bypass_locked":            { "name": "Bypass - Locked" },
+      "weekly_timer_enabled":     { "name": "Weekly Schedule Active" },
+      "cloud_connected":          { "name": "Cloud Connected" },
+      "kwl_reachable":            { "name": "Connectivity - KWL Reachable" }
+    },
+    "number": {
+      "home_speed":                  { "name": "Fan Power Level (Home)" },
+      "away_speed":                  { "name": "Fan Power Level (Away)" },
+      "boost_speed":                 { "name": "Fan Power Level (Boost)" },
+      "individual_supply_speed":     { "name": "Fan Power Level (Individual) - Supply" },
+      "individual_extract_speed":    { "name": "Fan Power Level (Individual) - Extract" },
+      "home_air_temp":               { "name": "Supply Air Target (Home)" },
+      "away_air_temp":               { "name": "Supply Air Target (Away)" },
+      "boost_air_temp":              { "name": "Supply Air Target (Boost)" },
+      "individual_air_temp":         { "name": "Supply Air Target (Individual)" },
+      "filter_change_interval_months": { "name": "Filter Change - Interval (months)" }
+    },
+    "switch": {
+      "main_power":                  { "name": "Main Power" },
+      "weekly_timer_enabled":        { "name": "Weekly Schedule Enabled" },
+      "vacation_active":             { "name": "Vacation Mode Active" },
+      "cool_recovery_enabled":       { "name": "Cool Recovery" },
+      "cool_recovery_plug_confirmed":{ "name": "Cool Recovery - Plug Confirmed" }
+    },
+    "select": {
+      "mode": {
+        "name": "Operating Mode"
+      }
+    },
+    "time": {
+      "duration_boost":              { "name": "Duration (Boost)" },
+      "duration_individual":         { "name": "Duration (Individual)" }
+    },
+    "button": {
+      "reset_filter":                { "name": "Filter Change - Reset to Today" }
+    }
+  }
+}
