@@ -3,299 +3,1258 @@
 # =========================================================================
 # Drop this into a new dashboard view (Settings -> Dashboards -> + Add).
 #
-# REQUIRED HACS CARDS:
-#   - mushroom (https://github.com/piitaya/lovelace-mushroom)
+# Required HACS frontend cards:
+#   - mushroom            (https://github.com/piitaya/lovelace-mushroom)
+#   - card-mod            (https://github.com/thomasloven/lovelace-card-mod)
+#   - apexcharts-card     (https://github.com/RomRider/apexcharts-card)
 #
-# ENTITY-ID NAMING CONVENTION:
-# This template uses the entity_id slug "helios_kwl_250_w" which
-# matches a default install where the device shows as "Helios KWL 250 W
-#". If your KWL is a different model (KWL 300 W ET, etc.) or you
-# renamed the device, do a global find&replace of
-#     helios_kwl_250_w
-# with your actual device slug. Easiest way: open one of your KWL entities
-# in HA, copy the entity_id, take the part between the dot and the entity
-# key, and replace globally.
+# Optional helper used in the "Automationsschutz" section:
+#   - input_boolean.kwl_automationen_gesperrt
+#     Settings -> Devices & Services -> Helpers -> + Add Helper -> Toggle.
+#     Use this in your own automations as a condition guard
+#     (`condition: state, entity_id: input_boolean.kwl_automationen_gesperrt,
+#      state: 'off'`) so you can disable all KWL automations with one tap.
 #
-# SAFETY PATTERN:
-# Main Power and Cool Recovery use tap_action: more-info instead of toggle,
-# and hold_action with confirmation. This prevents accidental shutdown of
-# the whole ventilation by a stray tap. Adjust as you like.
+# ENTITY-ID NAMING:
+# This template references the German entity-id slugs that HA generates
+# when the integration runs in a German locale, e.g.
+# `fan.helios_kwl_250_w_luftungsgerat`. If your HA UI language is English
+# the slugs will look like `fan.helios_kwl_250_w_ventilation_unit` etc.
+# Do a global find-replace if needed, or change the HA UI language to
+# German once to let HA generate the slugs, then switch back.
 #
-# Tabs: 1) Overview, 2) Per-Mode Settings, 3) Schedule & Filter,
-#       4) Diagnostics & Connectivity
+# DEVICE-NAME NAMING:
+# If your KWL is a different model than KWL 250 W (e.g. KWL 300 W ET),
+# replace `helios_kwl_250_w` with your device's actual slug everywhere.
 # =========================================================================
 
 views:
-
-  # ---------------------------------------------------------------------
-  # Tab 1: OVERVIEW — at-a-glance status + quick controls
-  # ---------------------------------------------------------------------
   - title: KWL
     path: kwl
     icon: mdi:fan
     type: sidebar
+    theme: UI Lovelace Minimalist Dark
     badges: []
     cards:
       - type: vertical-stack
         cards:
           - type: custom:mushroom-title-card
-            title: Helios KWL
-            subtitle: Ventilation · Climate · Control · Maintenance
-
-          # Quick chips — current status at a glance
+            title: Helios KWL 250 W
+            subtitle: Lüftung · Klima · Steuerung · Wartung
           - type: custom:mushroom-chips-card
             alignment: center
             chips:
-              # Ventilation Unit: tap = open details (on/off + mode + speed),
-              # hold = quick toggle with confirmation
               - type: entity
-                entity: fan.helios_kwl_250_w_ventilation_unit
-                icon: mdi:hvac
+                entity: fan.helios_kwl_250_w_luftungsgerat
+                icon: mdi:air-purifier
                 content_info: state
-                tap_action:
-                  action: more-info
-                hold_action:
-                  action: toggle
-                  confirmation:
-                    text: "Really toggle KWL main power?"
               - type: entity
-                entity: sensor.helios_kwl_250_w_current_fan_power_level
+                entity: sensor.helios_kwl_250_w_aktuelle_lufterleistung
                 icon: mdi:fan
                 content_info: state
               - type: entity
-                entity: binary_sensor.helios_kwl_250_w_kwl_reachable
-                icon: mdi:lan-connect
+                entity: sensor.helios_kwl_250_w_co2
+                icon: mdi:molecule-co2
                 content_info: state
+              - type: entity
+                entity: sensor.helios_kwl_250_w_relative_luftfeuchte
+                icon: mdi:water-percent
+                content_info: state
+              - type: entity
+                entity: sensor.helios_kwl_250_w_lufttemperatur_abluft
+                icon: mdi:home-thermometer
+                content_info: state
+            card_mod:
+              style: |
+                ha-card {
+                  border-radius: 24px;
+                  padding: 8px 10px;
+                  background: rgba(20, 20, 20, 0.35);
+                  backdrop-filter: blur(12px);
+                }
 
-          # Main fan control (big tile — on/off + preset + speed slider)
-          - type: tile
-            entity: fan.helios_kwl_250_w_ventilation_unit
-            name: Ventilation Unit
-            icon: mdi:hvac
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Betriebsmodus
+            subtitle: Schnellwahl der Lüftungsstufe
+          - type: grid
+            columns: 4
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: fan.helios_kwl_250_w_luftungsgerat
+                primary: Zuhause
+                secondary: >-
+                  {% if state_attr('fan.helios_kwl_250_w_luftungsgerat',
+                  'preset_mode') == 'Home' %}
+                    Aktiv
+                  {% else %}
+                    Umschalten
+                  {% endif %}
+                icon: mdi:home
+                tap_action:
+                  action: perform-action
+                  target:
+                    entity_id: fan.helios_kwl_250_w_luftungsgerat
+                  data:
+                    preset_mode: Home
+                  perform_action: fan.set_preset_mode
+                color: >-
+                  {% if state_attr('fan.helios_kwl_250_w_luftungsgerat',
+                  'preset_mode') == 'Home' %}
+                    green
+                  {% else %}
+                    disabled
+                  {% endif %}
+                vertical: true
+                features_position: bottom
+                card_mod:
+                  style: |
+                    ha-card {
+                      min-height: 110px;
+                      border-radius: 26px;
+                      {% if state_attr('fan.helios_kwl_250_w_luftungsgerat', 'preset_mode') == 'Home' %}
+                      background: linear-gradient(135deg, rgba(76, 175, 80, 0.28), rgba(76, 175, 80, 0.08));
+                      border: 1px solid rgba(76, 175, 80, 0.55);
+                      {% else %}
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(255, 255, 255, 0.08);
+                      {% endif %}
+                    }
+              - type: custom:mushroom-template-card
+                entity: fan.helios_kwl_250_w_luftungsgerat
+                primary: Unterwegs
+                secondary: >-
+                  {% if state_attr('fan.helios_kwl_250_w_luftungsgerat',
+                  'preset_mode') == 'Away' %}
+                    Aktiv
+                  {% else %}
+                    Umschalten
+                  {% endif %}
+                icon: mdi:airplane
+                tap_action:
+                  action: perform-action
+                  target:
+                    entity_id: fan.helios_kwl_250_w_luftungsgerat
+                  data:
+                    preset_mode: Away
+                  perform_action: fan.set_preset_mode
+                color: >-
+                  {% if state_attr('fan.helios_kwl_250_w_luftungsgerat',
+                  'preset_mode') == 'Away' %}
+                    red
+                  {% else %}
+                    disabled
+                  {% endif %}
+                vertical: true
+                features_position: bottom
+                card_mod:
+                  style: |
+                    ha-card {
+                      min-height: 110px;
+                      border-radius: 26px;
+                      {% if state_attr('fan.helios_kwl_250_w_luftungsgerat', 'preset_mode') == 'Away' %}
+                      background: linear-gradient(135deg, rgba(244, 67, 54, 0.28), rgba(244, 67, 54, 0.08));
+                      border: 1px solid rgba(244, 67, 54, 0.55);
+                      {% else %}
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(255, 255, 255, 0.08);
+                      {% endif %}
+                    }
+              - type: custom:mushroom-template-card
+                entity: fan.helios_kwl_250_w_luftungsgerat
+                primary: Intensiv
+                secondary: >-
+                  {% if state_attr('fan.helios_kwl_250_w_luftungsgerat',
+                  'preset_mode') == 'Boost' %}
+                    Aktiv · noch {{ states('sensor.helios_kwl_250_w_intensiv_verbleibend') }}
+                  {% else %}
+                    Stoßlüftung
+                  {% endif %}
+                icon: mdi:fan
+                tap_action:
+                  action: perform-action
+                  target:
+                    entity_id: fan.helios_kwl_250_w_luftungsgerat
+                  data:
+                    preset_mode: Boost
+                  perform_action: fan.set_preset_mode
+                color: >-
+                  {% if state_attr('fan.helios_kwl_250_w_luftungsgerat',
+                  'preset_mode') == 'Boost' %}
+                    blue
+                  {% else %}
+                    disabled
+                  {% endif %}
+                vertical: true
+                features_position: bottom
+                card_mod:
+                  style: |
+                    ha-card {
+                      min-height: 110px;
+                      border-radius: 26px;
+                      {% if state_attr('fan.helios_kwl_250_w_luftungsgerat', 'preset_mode') == 'Boost' %}
+                      background: linear-gradient(135deg, rgba(33, 150, 243, 0.30), rgba(33, 150, 243, 0.08));
+                      border: 1px solid rgba(33, 150, 243, 0.55);
+                      {% else %}
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(255, 255, 255, 0.08);
+                      {% endif %}
+                    }
+              - type: custom:mushroom-template-card
+                entity: fan.helios_kwl_250_w_luftungsgerat
+                primary: Individuell
+                secondary: >-
+                  {% if state_attr('fan.helios_kwl_250_w_luftungsgerat',
+                  'preset_mode') == 'Individual' %}
+                    Aktiv · noch {{ states('sensor.helios_kwl_250_w_individuell_verbleibend') }}
+                  {% else %}
+                    Manuell
+                  {% endif %}
+                icon: mdi:tune
+                tap_action:
+                  action: perform-action
+                  target:
+                    entity_id: fan.helios_kwl_250_w_luftungsgerat
+                  data:
+                    preset_mode: Individual
+                  perform_action: fan.set_preset_mode
+                color: >-
+                  {% if state_attr('fan.helios_kwl_250_w_luftungsgerat',
+                  'preset_mode') == 'Individual' %}
+                    orange
+                  {% else %}
+                    disabled
+                  {% endif %}
+                vertical: true
+                features_position: bottom
+                card_mod:
+                  style: |
+                    ha-card {
+                      min-height: 110px;
+                      border-radius: 26px;
+                      {% if state_attr('fan.helios_kwl_250_w_luftungsgerat', 'preset_mode') == 'Individual' %}
+                      background: linear-gradient(135deg, rgba(255, 152, 0, 0.30), rgba(255, 152, 0, 0.08));
+                      border: 1px solid rgba(255, 152, 0, 0.55);
+                      {% else %}
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(255, 255, 255, 0.08);
+                      {% endif %}
+                    }
 
-          # Live temperatures
-          - type: entities
-            title: Air Temperatures
-            icon: mdi:thermometer
-            entities:
-              - entity: sensor.helios_kwl_250_w_air_temperature_outdoor
-                name: Outdoor
-              - entity: sensor.helios_kwl_250_w_air_temperature_supply
-                name: Supply
-              - entity: sensor.helios_kwl_250_w_air_temperature_extract
-                name: Extract
-              - entity: sensor.helios_kwl_250_w_air_temperature_exhaust
-                name: Exhaust
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Live-Werte
+            subtitle: Aktuelle Sensorwerte der KWL
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_lufttemperatur_abluft
+                primary: Abluft (Innen)
+                secondary: >-
+                  {{ states('sensor.helios_kwl_250_w_lufttemperatur_abluft') }}
+                  °C
+                icon: mdi:home-thermometer
+                icon_color: orange
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_lufttemperatur_aussenluft
+                primary: Außenluft
+                secondary: >-
+                  {{ states('sensor.helios_kwl_250_w_lufttemperatur_aussenluft')
+                  }} °C
+                icon: mdi:thermometer-lines
+                icon_color: teal
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_lufttemperatur_zuluft
+                primary: Zuluft
+                secondary: >-
+                  {{ states('sensor.helios_kwl_250_w_lufttemperatur_zuluft') }}
+                  °C
+                icon: mdi:arrow-down-bold
+                icon_color: green
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_lufttemperatur_fortluft
+                primary: Fortluft (Abluft außen)
+                secondary: >-
+                  {{ states('sensor.helios_kwl_250_w_lufttemperatur_fortluft')
+                  }} °C
+                icon: mdi:arrow-up-bold
+                icon_color: purple
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_relative_luftfeuchte
+                primary: Luftfeuchte
+                secondary: '{{ states(''sensor.helios_kwl_250_w_relative_luftfeuchte'') }} %'
+                icon: mdi:water-percent
+                icon_color: blue
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_co2
+                primary: CO₂
+                secondary: |-
+                  {{ states('sensor.helios_kwl_250_w_co2') }} ppm
+                  {% set co2 = states('sensor.helios_kwl_250_w_co2') | int(0) %}
+                  {% if co2 < 800 %} · Gut
+                  {% elif co2 < 1200 %} · Mittel
+                  {% else %} · Hoch
+                  {% endif %}
+                icon: mdi:molecule-co2
+                icon_color: |-
+                  {% set co2 = states('sensor.helios_kwl_250_w_co2') | int(0) %}
+                  {% if co2 < 800 %}green
+                  {% elif co2 < 1200 %}amber
+                  {% else %}red{% endif %}
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_aktuelle_lufterleistung
+                primary: Lüfterleistung (Stufe)
+                secondary: >-
+                  {{ states('sensor.helios_kwl_250_w_aktuelle_lufterleistung')
+                  }}
+                icon: mdi:fan-speed-3
+                icon_color: cyan
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_lufterdrehzahl_zuluft
+                primary: Drehzahl Zuluft
+                secondary: >-
+                  {{ states('sensor.helios_kwl_250_w_lufterdrehzahl_zuluft') }}
+                  U/min
+                icon: mdi:rotate-right
+                icon_color: light-green
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_lufterdrehzahl_abluft
+                primary: Drehzahl Abluft
+                secondary: >-
+                  {{ states('sensor.helios_kwl_250_w_lufterdrehzahl_abluft') }}
+                  U/min
+                icon: mdi:rotate-left
+                icon_color: deep-purple
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: binary_sensor.helios_kwl_250_w_bypass_stufenlos_aktiv
+                primary: Bypass
+                secondary: >-
+                  {% if
+                  is_state('binary_sensor.helios_kwl_250_w_bypass_stufenlos_aktiv',
+                  'on') %}
+                    Aktiv – Freikühlbetrieb
+                  {% else %}
+                    Inaktiv – Wärmetauscher aktiv
+                  {% endif %}
+                icon: >-
+                  {% if
+                  is_state('binary_sensor.helios_kwl_250_w_bypass_stufenlos_aktiv',
+                  'on') %}
+                    mdi:valve-open
+                  {% else %}
+                    mdi:valve-closed
+                  {% endif %}
+                icon_color: >-
+                  {% if
+                  is_state('binary_sensor.helios_kwl_250_w_bypass_stufenlos_aktiv',
+                  'on') %}
+                    cyan
+                  {% else %}
+                    grey
+                  {% endif %}
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_warmetauscher_status
+                primary: Wärmetauscher
+                secondary: '{{ states(''sensor.helios_kwl_250_w_warmetauscher_status'') }}'
+                icon: mdi:heat-wave
+                icon_color: deep-orange
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
 
-          # Fan RPMs
-          - type: entities
-            title: Fan RPM
-            icon: mdi:fan
-            entities:
-              - entity: sensor.helios_kwl_250_w_fan_rpm_supply
-                name: Supply
-              - entity: sensor.helios_kwl_250_w_fan_rpm_extract
-                name: Extract
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Sondermodi
+            subtitle: Automatische & geplante Betriebsarten
+          - type: grid
+            columns: 3
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: binary_sensor.helios_kwl_250_w_modus_abtauung_aktiv
+                primary: Abtauung
+                secondary: >-
+                  {% if
+                  is_state('binary_sensor.helios_kwl_250_w_modus_abtauung_aktiv',
+                  'on') %}
+                    Aktiv
+                  {% else %}
+                    Inaktiv
+                  {% endif %}
+                icon: mdi:snowflake-melt
+                icon_color: >-
+                  {% if
+                  is_state('binary_sensor.helios_kwl_250_w_modus_abtauung_aktiv',
+                  'on') %}
+                    blue
+                  {% else %}
+                    grey
+                  {% endif %}
+                layout: vertical
+                fill_container: true
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card {
+                      min-height: 90px;
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                    }
+              - type: custom:mushroom-template-card
+                entity: switch.helios_kwl_250_w_wochenprogramm_aktiv
+                primary: Wochenprogramm
+                secondary: >-
+                  {% if is_state('switch.helios_kwl_250_w_wochenprogramm_aktiv',
+                  'on') %}
+                    Aktiv
+                  {% else %}
+                    Inaktiv
+                  {% endif %}
+                icon: mdi:calendar-week
+                icon_color: >-
+                  {% if is_state('switch.helios_kwl_250_w_wochenprogramm_aktiv',
+                  'on') %}
+                    indigo
+                  {% else %}
+                    grey
+                  {% endif %}
+                layout: vertical
+                fill_container: true
+                tap_action:
+                  action: toggle
+                card_mod:
+                  style: |
+                    ha-card {
+                      min-height: 90px;
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                    }
+              - type: custom:mushroom-template-card
+                entity: switch.helios_kwl_250_w_urlaubsmodus_aktiv
+                primary: Urlaubsmodus
+                secondary: >-
+                  {% if is_state('switch.helios_kwl_250_w_urlaubsmodus_aktiv',
+                  'on') %}
+                    Aktiv
+                  {% else %}
+                    Inaktiv
+                  {% endif %}
+                icon: mdi:beach
+                icon_color: >-
+                  {% if is_state('switch.helios_kwl_250_w_urlaubsmodus_aktiv',
+                  'on') %}
+                    amber
+                  {% else %}
+                    grey
+                  {% endif %}
+                layout: vertical
+                fill_container: true
+                tap_action:
+                  action: toggle
+                card_mod:
+                  style: |
+                    ha-card {
+                      min-height: 90px;
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                    }
 
-          # Air quality
-          - type: entities
-            title: Air Quality
-            icon: mdi:air-filter
-            entities:
-              - entity: sensor.helios_kwl_250_w_relative_humidity
-                name: Humidity
-              - entity: sensor.helios_kwl_250_w_co2
-                name: CO₂
+      - type: custom:apexcharts-card
+        graph_span: 24h
+        update_interval: 1min
+        header:
+          show: true
+          title: Klima 24 Stunden
+          show_states: true
+          colorize_states: true
+        apex_config:
+          chart:
+            height: 330
+            toolbar:
+              show: false
+          stroke:
+            curve: smooth
+            width: 3
+          legend:
+            show: true
+            position: bottom
+          grid:
+            borderColor: rgba(255,255,255,0.08)
+          tooltip:
+            shared: true
+            followCursor: true
+        yaxis:
+          - id: temp
+            decimals: 1
+            apex_config:
+              title:
+                text: Temperatur °C
+          - id: humidity
+            opposite: true
+            min: 0
+            max: 100
+            decimals: 0
+            apex_config:
+              title:
+                text: Feuchte %
+        series:
+          - entity: sensor.helios_kwl_250_w_lufttemperatur_abluft
+            name: Abluft (Innen)
+            yaxis_id: temp
+            show:
+              in_header: true
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.helios_kwl_250_w_lufttemperatur_aussenluft
+            name: Außen
+            yaxis_id: temp
+            show:
+              in_header: true
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.helios_kwl_250_w_lufttemperatur_zuluft
+            name: Zuluft
+            yaxis_id: temp
+            show:
+              in_header: false
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.helios_kwl_250_w_lufttemperatur_fortluft
+            name: Fortluft
+            yaxis_id: temp
+            show:
+              in_header: false
+            group_by:
+              func: avg
+              duration: 10min
+          - entity: sensor.helios_kwl_250_w_relative_luftfeuchte
+            name: Feuchte
+            yaxis_id: humidity
+            show:
+              in_header: true
+            group_by:
+              func: avg
+              duration: 10min
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 26px;
+              background: rgba(20, 20, 20, 0.35);
+              backdrop-filter: blur(12px);
+            }
 
-  # ---------------------------------------------------------------------
-  # Tab 2: PER-MODE SETPOINTS
-  # ---------------------------------------------------------------------
-  - title: Modes
-    path: modes
-    icon: mdi:tune
-    badges: []
-    cards:
+      - type: custom:apexcharts-card
+        graph_span: 24h
+        update_interval: 1min
+        header:
+          show: true
+          title: CO₂ 24 Stunden
+          show_states: true
+          colorize_states: true
+        apex_config:
+          chart:
+            height: 220
+            toolbar:
+              show: false
+          stroke:
+            curve: smooth
+            width: 3
+          legend:
+            show: false
+          grid:
+            borderColor: rgba(255,255,255,0.08)
+          tooltip:
+            shared: true
+            followCursor: true
+          annotations:
+            yaxis:
+              - 'y': 1000
+                borderColor: rgba(255, 152, 0, 0.7)
+                label:
+                  text: Grenzwert 1000 ppm
+                  style:
+                    color: rgba(255, 152, 0, 0.9)
+        yaxis:
+          - id: co2
+            min: 300
+            decimals: 0
+            apex_config:
+              title:
+                text: CO₂ ppm
+        series:
+          - entity: sensor.helios_kwl_250_w_co2
+            name: CO₂
+            yaxis_id: co2
+            color: rgba(100, 220, 100, 0.9)
+            show:
+              in_header: true
+            group_by:
+              func: avg
+              duration: 10min
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 26px;
+              background: rgba(20, 20, 20, 0.35);
+              backdrop-filter: blur(12px);
+            }
 
-      - type: custom:mushroom-title-card
-        title: Per-Mode Setpoints
-        subtitle: Fan power level and supply-air target per operating mode
+      - type: custom:apexcharts-card
+        graph_span: 24h
+        update_interval: 1min
+        header:
+          show: true
+          title: Lüfter 24 Stunden
+          show_states: true
+          colorize_states: true
+        apex_config:
+          chart:
+            height: 260
+            toolbar:
+              show: false
+          stroke:
+            curve: stepline
+            width: 3
+          legend:
+            show: true
+            position: bottom
+          grid:
+            borderColor: rgba(255,255,255,0.08)
+          tooltip:
+            shared: true
+            followCursor: true
+        yaxis:
+          - id: speed
+            decimals: 0
+            apex_config:
+              title:
+                text: Lüfterstufe
+          - id: rpm
+            opposite: true
+            decimals: 0
+            apex_config:
+              title:
+                text: U/min
+        series:
+          - entity: sensor.helios_kwl_250_w_aktuelle_lufterleistung
+            name: Lüfterstufe
+            yaxis_id: speed
+            show:
+              in_header: true
+            group_by:
+              func: last
+              duration: 5min
+          - entity: sensor.helios_kwl_250_w_lufterdrehzahl_zuluft
+            name: Drehzahl Zuluft
+            yaxis_id: rpm
+            show:
+              in_header: false
+            group_by:
+              func: avg
+              duration: 5min
+          - entity: sensor.helios_kwl_250_w_lufterdrehzahl_abluft
+            name: Drehzahl Abluft
+            yaxis_id: rpm
+            show:
+              in_header: false
+            group_by:
+              func: avg
+              duration: 5min
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 26px;
+              background: rgba(20, 20, 20, 0.35);
+              backdrop-filter: blur(12px);
+            }
 
-      - type: entities
-        title: Home Mode
-        icon: mdi:home
+      - type: custom:apexcharts-card
+        graph_span: 4h
+        update_interval: 30sec
+        header:
+          show: true
+          title: Restlaufzeit Boost & Individuell
+          show_states: true
+          colorize_states: true
+        apex_config:
+          chart:
+            height: 200
+            toolbar:
+              show: false
+          stroke:
+            curve: stepline
+            width: 3
+          legend:
+            show: true
+            position: bottom
+          grid:
+            borderColor: rgba(255,255,255,0.08)
+          tooltip:
+            shared: true
+            followCursor: true
+        yaxis:
+          - id: timer
+            min: 0
+            decimals: 0
+            apex_config:
+              title:
+                text: Minuten verbleibend
+        series:
+          - entity: sensor.helios_kwl_250_w_intensiv_verbleibend
+            name: Boost
+            yaxis_id: timer
+            color: rgba(33, 150, 243, 0.9)
+            show:
+              in_header: true
+            group_by:
+              func: last
+              duration: 1min
+          - entity: sensor.helios_kwl_250_w_individuell_verbleibend
+            name: Individuell
+            yaxis_id: timer
+            color: rgba(255, 152, 0, 0.9)
+            show:
+              in_header: true
+            group_by:
+              func: last
+              duration: 1min
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 26px;
+              background: rgba(20, 20, 20, 0.35);
+              backdrop-filter: blur(12px);
+            }
+
+      - type: history-graph
+        title: Betriebsmodus-Historie
+        hours_to_show: 24
         entities:
-          - entity: number.helios_kwl_250_w_fan_power_level_home
-            name: Fan Power Level
-          - entity: number.helios_kwl_250_w_supply_air_target_home
-            name: Supply Air Target
+          - entity: fan.helios_kwl_250_w_luftungsgerat
+            name: Lüftungsgerät
+          - entity: sensor.helios_kwl_250_w_warmetauscher_status
+            name: Wärmetauscher
+          - entity: binary_sensor.helios_kwl_250_w_bypass_stufenlos_aktiv
+            name: Bypass
+          - entity: binary_sensor.helios_kwl_250_w_modus_abtauung_aktiv
+            name: Abtauung
 
-      - type: entities
-        title: Away Mode
-        icon: mdi:home-export-outline
-        entities:
-          - entity: number.helios_kwl_250_w_fan_power_level_away
-            name: Fan Power Level
-          - entity: number.helios_kwl_250_w_supply_air_target_away
-            name: Supply Air Target
-
-      - type: entities
-        title: Boost Mode
-        icon: mdi:fan-plus
-        entities:
-          - entity: number.helios_kwl_250_w_fan_power_level_boost
-            name: Fan Power Level
-          - entity: number.helios_kwl_250_w_supply_air_target_boost
-            name: Supply Air Target
-          - entity: time.helios_kwl_250_w_duration_boost
-            name: Duration
-
-      - type: entities
-        title: Individual Mode
-        icon: mdi:account-tie
-        entities:
-          - entity: number.helios_kwl_250_w_fan_power_level_individual_supply
-            name: Supply Fan Power Level
-          - entity: number.helios_kwl_250_w_fan_power_level_individual_extract
-            name: Extract Fan Power Level
-          - entity: number.helios_kwl_250_w_supply_air_target_individual
-            name: Supply Air Target
-          - entity: time.helios_kwl_250_w_duration_individual
-            name: Duration
-
-      - type: entities
-        title: Bypass & Heat Exchanger
-        icon: mdi:valve
-        entities:
-          - entity: binary_sensor.helios_kwl_250_w_stepless_bypass
-            name: Stepless Bypass Active
-          - entity: binary_sensor.helios_kwl_250_w_bypass_locked
-            name: Bypass Locked (read-only)
-          - entity: sensor.helios_kwl_250_w_heat_exchanger_state
-            name: Heat Exchanger State
-
-      # Cool Recovery with the same safety pattern as Main Power.
-      # Toggling cool recovery without the physical plug being removed is
-      # a no-op at the hardware level — see README for the safety logic.
-      - type: entities
-        title: Cool Recovery
-        icon: mdi:snowflake-thermometer
-        entities:
-          - entity: switch.helios_kwl_250_w_cool_recovery_plug_confirmed
-            name: Plug Confirmed (physical plug removed?)
-          - type: custom:mushroom-entity-card
-            entity: switch.helios_kwl_250_w_cool_recovery
-            name: Cool Recovery
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Automationsschutz
+            subtitle: Verhindert automatisches Schalten der KWL
+          - type: custom:mushroom-template-card
+            entity: input_boolean.kwl_automationen_gesperrt
+            primary: Automationen gesperrt
+            secondary: |-
+              {% if is_state('input_boolean.kwl_automationen_gesperrt', 'on') %}
+                Gesperrt – KWL reagiert nicht auf Automationen
+              {% else %}
+                Aktiv – KWL reagiert auf Automationen
+              {% endif %}
+            icon: |-
+              {% if is_state('input_boolean.kwl_automationen_gesperrt', 'on') %}
+                mdi:shield-lock
+              {% else %}
+                mdi:shield-check
+              {% endif %}
+            icon_color: |-
+              {% if is_state('input_boolean.kwl_automationen_gesperrt', 'on') %}
+                red
+              {% else %}
+                green
+              {% endif %}
             tap_action:
-              action: more-info
-            hold_action:
               action: toggle
-              confirmation:
-                text: "Really toggle Cool Recovery? The physical plug must be removed first."
+            card_mod:
+              style: |
+                ha-card {
+                  border-radius: 24px;
+                  {% if is_state('input_boolean.kwl_automationen_gesperrt', 'on') %}
+                  background: linear-gradient(135deg, rgba(244, 67, 54, 0.28), rgba(244, 67, 54, 0.08));
+                  border: 1px solid rgba(244, 67, 54, 0.65);
+                  {% else %}
+                  background: linear-gradient(135deg, rgba(76, 175, 80, 0.20), rgba(76, 175, 80, 0.05));
+                  border: 1px solid rgba(76, 175, 80, 0.45);
+                  {% endif %}
+                }
 
-  # ---------------------------------------------------------------------
-  # Tab 3: SCHEDULE & FILTER
-  # ---------------------------------------------------------------------
-  - title: Schedule
-    path: schedule
-    icon: mdi:calendar-clock
-    badges: []
-    cards:
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Filter & Wartung
+            subtitle: Wechseltermine im Blick behalten
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_filterwechsel_letzter
+                primary: Letzter Filterwechsel
+                secondary: '{{ states(''sensor.helios_kwl_250_w_filterwechsel_letzter'') }}'
+                icon: mdi:air-filter
+                icon_color: grey
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_filterwechsel_nachster
+                primary: Nächster Filterwechsel
+                secondary: '{{ states(''sensor.helios_kwl_250_w_filterwechsel_nachster'') }}'
+                icon: mdi:calendar-clock
+                icon_color: amber
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: number.helios_kwl_250_w_filterwechsel_intervall_monate
+                primary: Wechselintervall
+                secondary: >-
+                  {{
+                  states('number.helios_kwl_250_w_filterwechsel_intervall_monate')
+                  }} Monate · Popup
+                icon: mdi:timer-settings
+                icon_color: teal
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: button.helios_kwl_250_w_filterwechsel_auf_heute_zurucksetzen
+                primary: Filter heute gewechselt
+                secondary: Tippen → Bestätigungsdialog
+                icon: mdi:restore-clock
+                icon_color: green
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: >-
+                      button.helios_kwl_250_w_filterwechsel_auf_heute_zurucksetzen
+                  confirmation:
+                    text: Filterwechsel wirklich auf heute zurücksetzen?
+                hold_action:
+                  action: none
+                double_tap_action:
+                  action: none
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 80, 20, 0.22);
+                      border: 1px solid rgba(76, 175, 80, 0.35);
+                    }
+
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Einstellungen
+            subtitle: Anlage · Änderung per Popup
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: fan.helios_kwl_250_w_luftungsgerat
+                primary: Betriebsmodus
+                secondary: >-
+                  {{ state_attr('fan.helios_kwl_250_w_luftungsgerat',
+                  'preset_mode') }}
+                icon: mdi:air-purifier
+                icon_color: blue
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Modus – Zuhause
+            subtitle: Lüfterleistung & Zulufttemperatur
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: number.helios_kwl_250_w_lufterleistung_zuhause
+                primary: Lüfterstufe
+                secondary: >-
+                  {{ states('number.helios_kwl_250_w_lufterleistung_zuhause') }}
+                  · Popup
+                icon: mdi:fan
+                icon_color: green
+                tap_action:
+                  action: more-info
+                hold_action:
+                  action: none
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(76, 175, 80, 0.20);
+                    }
+              - type: custom:mushroom-template-card
+                entity: number.helios_kwl_250_w_zulufttemperatur_zuhause
+                primary: Zulufttemperatur
+                secondary: >-
+                  {{ states('number.helios_kwl_250_w_zulufttemperatur_zuhause')
+                  }} °C · Popup
+                icon: mdi:thermometer-chevron-up
+                icon_color: green
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(76, 175, 80, 0.20);
+                    }
+
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Modus – Unterwegs
+            subtitle: Lüfterleistung & Zulufttemperatur
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: number.helios_kwl_250_w_lufterleistung_unterwegs
+                primary: Lüfterstufe
+                secondary: >-
+                  {{ states('number.helios_kwl_250_w_lufterleistung_unterwegs')
+                  }} · Popup
+                icon: mdi:fan
+                icon_color: red
+                tap_action:
+                  action: more-info
+                hold_action:
+                  action: none
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(244, 67, 54, 0.20);
+                    }
+              - type: custom:mushroom-template-card
+                entity: number.helios_kwl_250_w_zulufttemperatur_unterwegs
+                primary: Zulufttemperatur
+                secondary: >-
+                  {{
+                  states('number.helios_kwl_250_w_zulufttemperatur_unterwegs')
+                  }} °C · Popup
+                icon: mdi:thermometer-chevron-up
+                icon_color: red
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(244, 67, 54, 0.20);
+                    }
+
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Modus – Intensivlüftung (Boost)
+            subtitle: Lüfterleistung · Zulufttemperatur · Dauer
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: number.helios_kwl_250_w_lufterleistung_intensiv
+                primary: Lüfterstufe
+                secondary: >-
+                  {{ states('number.helios_kwl_250_w_lufterleistung_intensiv')
+                  }} · Popup
+                icon: mdi:fan-plus
+                icon_color: blue
+                tap_action:
+                  action: more-info
+                hold_action:
+                  action: none
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(33, 150, 243, 0.20);
+                    }
+              - type: custom:mushroom-template-card
+                entity: number.helios_kwl_250_w_zulufttemperatur_intensiv
+                primary: Zulufttemperatur
+                secondary: >-
+                  {{ states('number.helios_kwl_250_w_zulufttemperatur_intensiv')
+                  }} °C · Popup
+                icon: mdi:thermometer-chevron-up
+                icon_color: blue
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(33, 150, 243, 0.20);
+                    }
+              - type: custom:mushroom-template-card
+                entity: time.helios_kwl_250_w_dauer_intensiv
+                primary: Dauer
+                secondary: '{{ states(''time.helios_kwl_250_w_dauer_intensiv'') }} · Popup'
+                icon: mdi:timer-cog
+                icon_color: blue
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(33, 150, 243, 0.20);
+                    }
+
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Modus – Individuell
+            subtitle: Getrennte Zu-/Abluft · Zulufttemperatur · Dauer
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: number.helios_kwl_250_w_lufterleistung_individuell_zuluft
+                primary: Lüfterstufe Zuluft
+                secondary: >-
+                  {{
+                  states('number.helios_kwl_250_w_lufterleistung_individuell_zuluft')
+                  }} · Popup
+                icon: mdi:arrow-down-bold-circle
+                icon_color: light-green
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(255, 152, 0, 0.20);
+                    }
+              - type: custom:mushroom-template-card
+                entity: number.helios_kwl_250_w_lufterleistung_individuell_abluft
+                primary: Lüfterstufe Abluft
+                secondary: >-
+                  {{
+                  states('number.helios_kwl_250_w_lufterleistung_individuell_abluft')
+                  }} · Popup
+                icon: mdi:arrow-up-bold-circle
+                icon_color: deep-purple
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(255, 152, 0, 0.20);
+                    }
+              - type: custom:mushroom-template-card
+                entity: number.helios_kwl_250_w_zulufttemperatur_individuell
+                primary: Zulufttemperatur
+                secondary: >-
+                  {{
+                  states('number.helios_kwl_250_w_zulufttemperatur_individuell')
+                  }} °C · Popup
+                icon: mdi:thermometer-chevron-up
+                icon_color: orange
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(255, 152, 0, 0.20);
+                    }
+              - type: custom:mushroom-template-card
+                entity: time.helios_kwl_250_w_dauer_individuell
+                primary: Dauer
+                secondary: >-
+                  {{ states('time.helios_kwl_250_w_dauer_individuell') }} ·
+                  Popup
+                icon: mdi:timer-cog-outline
+                icon_color: orange
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(255, 152, 0, 0.20);
+                    }
+
+      - type: vertical-stack
+        cards:
+          - type: custom:mushroom-title-card
+            title: Konnektivität
+            subtitle: Erreichbarkeit & Betriebszeit
+          - type: grid
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-template-card
+                entity: binary_sensor.helios_kwl_250_w_konnektivitat_kwl_erreichbar
+                primary: KWL erreichbar
+                secondary: >-
+                  {% if
+                  is_state('binary_sensor.helios_kwl_250_w_konnektivitat_kwl_erreichbar',
+                  'on') %}
+                    Online
+                  {% else %}
+                    Offline – Verbindung prüfen
+                  {% endif %}
+                icon: >-
+                  {% if
+                  is_state('binary_sensor.helios_kwl_250_w_konnektivitat_kwl_erreichbar',
+                  'on') %}
+                    mdi:lan-check
+                  {% else %}
+                    mdi:lan-disconnect
+                  {% endif %}
+                icon_color: >-
+                  {% if
+                  is_state('binary_sensor.helios_kwl_250_w_konnektivitat_kwl_erreichbar',
+                  'on') %}
+                    green
+                  {% else %}
+                    red
+                  {% endif %}
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
+              - type: custom:mushroom-template-card
+                entity: sensor.helios_kwl_250_w_betriebszeit
+                primary: Betriebszeit
+                secondary: '{{ states(''sensor.helios_kwl_250_w_betriebszeit'') }}'
+                icon: mdi:clock-check
+                icon_color: grey
+                tap_action:
+                  action: more-info
+                card_mod:
+                  style: >
+                    ha-card { border-radius: 24px; background: rgba(20, 20, 20,
+                    0.35); }
 
       - type: custom:mushroom-title-card
-        title: Weekly Schedule & Filter
-        subtitle: Maintenance & automation
-
+        title: Shelly – Leistungsmessung
+        subtitle: Stromverbrauch der KWL am Shelly-Plug
       - type: entities
-        title: Weekly Schedule
-        icon: mdi:calendar-clock
+        show_header_toggle: false
+        state_color: true
         entities:
-          - entity: switch.helios_kwl_250_w_weekly_schedule_enabled
-            name: Weekly Schedule Active
-
-      - type: entities
-        title: Filter
-        icon: mdi:air-filter
-        entities:
-          - entity: number.helios_kwl_250_w_filter_change_interval
-            name: Change Interval (months)
-          - entity: sensor.helios_kwl_250_w_filter_change_last
-            name: Last Change
-          - entity: sensor.helios_kwl_250_w_filter_change_next
-            name: Next Change Due
-          - entity: button.helios_kwl_250_w_reset_filter_change_date
-            name: Reset to Today
-
-  # ---------------------------------------------------------------------
-  # Tab 4: DIAGNOSTICS
-  # ---------------------------------------------------------------------
-  - title: Diagnostics
-    path: diag
-    icon: mdi:stethoscope
-    badges: []
-    cards:
-
-      - type: custom:mushroom-title-card
-        title: Diagnostics & Connectivity
-
-      - type: entities
-        title: Device
-        entities:
-          - entity: sensor.helios_kwl_250_w_operating_time
-            name: Operating Time
-          - entity: sensor.helios_kwl_250_w_last_power_interruption
-            name: Last Power Interruption
-          - entity: sensor.helios_kwl_250_w_uuid
-            name: UUID
-          - entity: sensor.helios_kwl_250_w_orientation
-            name: Orientation
-          - entity: sensor.helios_kwl_250_w_humidity_sensors
-            name: Humidity Sensors (count)
-          - entity: sensor.helios_kwl_250_w_co2_voc_sensors
-            name: CO2/VOC Sensors (count)
-
-      - type: entities
-        title: Network
-        entities:
-          - entity: sensor.helios_kwl_250_w_ip_address
-            name: IP - Address
-          - entity: sensor.helios_kwl_250_w_ip_gateway
-            name: IP - Gateway
-          - entity: sensor.helios_kwl_250_w_ip_subnet_mask
-            name: IP - Subnet Mask
-
-      - type: entities
-        title: Connectivity
-        entities:
-          - entity: binary_sensor.helios_kwl_250_w_kwl_reachable
-            name: KWL Reachable
-          - entity: sensor.helios_kwl_250_w_connection_stability
-            name: Connection Stability (60-slot rolling)
-          - entity: sensor.helios_kwl_250_w_consecutive_failures
-            name: Consecutive Failures
-          - entity: sensor.helios_kwl_250_w_total_failures
-            name: Total Failures
-
-      - type: entities
-        title: IO State (raw)
-        icon: mdi:chip
-        entities:
-          - entity: sensor.helios_kwl_250_w_io_bypass_position
-            name: Bypass Position
-          - entity: sensor.helios_kwl_250_w_io_supply_fan
-            name: Supply Fan IO
-          - entity: sensor.helios_kwl_250_w_io_extract_fan
-            name: Extract Fan IO
-          - entity: sensor.helios_kwl_250_w_io_heater
-            name: Heater IO
-          - entity: sensor.helios_kwl_250_w_io_extra_heater
-            name: Extra Heater IO
-          - entity: sensor.helios_kwl_250_w_io_error_flags
-            name: Error Flags
-          - entity: sensor.helios_kwl_250_w_relay_mode
-            name: Relay Mode
-
-      - type: entities
-        title: Cloud
-        entities:
-          - entity: binary_sensor.helios_kwl_250_w_cloud_connected
-            name: easyControls Cloud Connected
+          - entity: sensor.pm_lueftunghaus_power
+            name: Leistung aktuell
+          - entity: sensor.pm_lueftunghaus_energy
+            name: Energie gesamt
+        card_mod:
+          style: |
+            ha-card {
+              border-radius: 26px;
+              background: rgba(20, 20, 20, 0.35);
+            }

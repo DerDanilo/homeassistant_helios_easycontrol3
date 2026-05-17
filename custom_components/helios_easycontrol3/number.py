@@ -194,4 +194,4 @@ class _GenericNumber(EasyControlsBaseEntity, NumberEntity):
         await self.coordinator.client.write_variable(
             self.entity_description.address, encoded
         )
-        await self.coordinator.request_refresh_after_writ
+        await self.coordinator.request_refresh_after_write()
