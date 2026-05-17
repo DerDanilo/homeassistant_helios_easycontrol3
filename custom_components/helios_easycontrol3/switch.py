@@ -67,7 +67,6 @@ async def async_setup_entry(
 ) -> None:
     coordinator = hass.data[DOMAIN][entry.entry_id]
     entities: list[SwitchEntity] = [_GenericSwitch(coordinator, d) for d in SWITCHES]
-    entities.append(_OnOffSwitch(coordinator))
     entities.append(_PlugConfirmedSwitch(coordinator))
     entities.append(_CoolRecoverySwitch(coordinator))
     async_add_entities(entities)
@@ -95,30 +94,6 @@ class _GenericSwitch(EasyControlsBaseEntity, SwitchEntity):
         await self.coordinator.client.write_variable(
             self.entity_description.address, self.entity_description.off_value
         )
-        await self.coordinator.request_refresh_after_write()
-
-
-class _OnOffSwitch(EasyControlsBaseEntity, SwitchEntity):
-    """Master switch: turns the entire KWL on/off via MODE variable."""
-
-    _attr_has_entity_name = True
-    _attr_translation_key = "main_power"
-    _attr_icon = "mdi:power"
-
-    def __init__(self, coordinator: EasyControls3Coordinator):
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.serial_str() or coordinator.host}_kwl_on_off"
-
-    @property
-    def is_on(self) -> bool | None:
-        return self.coordinator.data.is_on if self.coordinator.data else None
-
-    async def async_turn_on(self, **kwargs) -> None:
-        await self.coordinator.client.write_variable(A.ADDR_MODE, A.MODE_NORMAL)
-        await self.coordinator.request_refresh_after_write()
-
-    async def async_turn_off(self, **kwargs) -> None:
-        await self.coordinator.client.write_variable(A.ADDR_MODE, A.MODE_OFF)
         await self.coordinator.request_refresh_after_write()
 
 

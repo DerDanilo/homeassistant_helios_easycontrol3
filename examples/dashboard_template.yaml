@@ -46,10 +46,11 @@ views:
           - type: custom:mushroom-chips-card
             alignment: center
             chips:
-              # Main Power: tap = open details (NO direct toggle), hold = confirm-toggle
+              # Ventilation Unit: tap = open details (on/off + mode + speed),
+              # hold = quick toggle with confirmation
               - type: entity
-                entity: switch.helios_kwl_250_w_main_power
-                icon: mdi:power
+                entity: fan.helios_kwl_250_w_ventilation_unit
+                icon: mdi:hvac
                 content_info: state
                 tap_action:
                   action: more-info
@@ -57,10 +58,6 @@ views:
                   action: toggle
                   confirmation:
                     text: "Really toggle KWL main power?"
-              - type: entity
-                entity: select.helios_kwl_250_w_mode
-                icon: mdi:state-machine
-                content_info: state
               - type: entity
                 entity: sensor.helios_kwl_250_w_current_fan_power_level
                 icon: mdi:fan
@@ -70,11 +67,11 @@ views:
                 icon: mdi:lan-connect
                 content_info: state
 
-          # Mode select (big)
+          # Main fan control (big tile — on/off + preset + speed slider)
           - type: tile
-            entity: select.helios_kwl_250_w_mode
-            name: Operating Mode
-            icon: mdi:state-machine
+            entity: fan.helios_kwl_250_w_ventilation_unit
+            name: Ventilation Unit
+            icon: mdi:hvac
 
           # Live temperatures
           - type: entities

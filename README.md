@@ -109,13 +109,18 @@ add results to the compatibility table below.
 
 ## Features
 
-- **40+ entities** for monitoring and control
+- **Native HA `fan` entity** as the primary control surface — on/off,
+  preset mode (Home / Away / Boost / Individual), and speed (percentage)
+  in a single entity. Works natively with voice assistants
+  (Alexa, Google) and standard Lovelace fan cards.
+- **40+ entities** for monitoring and additional control
   - Air temperatures (outdoor, supply, extract, exhaust)
   - Real fan RPMs (supply / extract)
   - Humidity, CO₂ (when sensor is present)
   - Individual sensor list (per Helios "Sensoren" subsection)
-  - All operating modes (Home / Away / Boost / Individual)
-  - Per-mode setpoints: fan power level %, supply air temperature
+  - Per-mode setpoints as text-input numbers (fan power level %, supply
+    air temperature)
+  - Boost / Individual remaining-minutes countdown sensors
   - Filter status + change interval (1-12 months matching WebUI)
   - Bypass state, heat exchanger state, defrost state
   - Cool Recovery (with HA-side plug-confirmation safety, mirrors WebUI logic)
@@ -132,8 +137,8 @@ add results to the compatibility table below.
 - **Vacation mode** — on/off switch in HA; end-date and the mode that runs
   during vacation are configured in the Helios WebUI.
 - **Filter reset button**
-- **Multi-language UI** (English, German) — config flow, services, and all
-  entity names are localised
+- **Multi-language UI** (English, German) — config flow, options flow and
+  all entity names are localised
 
 ## Usage notes
 
@@ -146,29 +151,31 @@ value. The KWL needs time to process the write and our refresh chain
 fire off multiple writes faster than that, the device may drop intermediate
 values or our coordinator may briefly show stale state.
 
-### Main Power safety pattern
+### Fan entity safety pattern
 
-The Main Power switch toggles the whole ventilation unit on/off. To reduce
-the chance of accidental shutdowns from a stray tap in the Lovelace UI, the
-bundled example dashboard (`examples/dashboard_template.yaml`) configures it
-as:
+The native `fan.<device>_ventilation_unit` entity is the primary control
+surface — it turns the whole unit on/off and switches preset modes. To
+reduce the chance of accidental shutdowns from a stray tap in the
+Lovelace UI, the bundled example dashboard
+(`examples/dashboard_template.yaml`) configures it as:
 
 ```yaml
 - type: entity
-  entity: switch.<your_device>_main_power
+  entity: fan.<your_device>_ventilation_unit
   tap_action:
     action: more-info        # opens the details popup, no direct toggle
   hold_action:
     action: toggle
     confirmation:
-      text: "KWL wirklich ein-/ausschalten?"
+      text: "Really toggle KWL main power?"
 ```
 
-A normal tap opens the entity details (where you can deliberately toggle),
-and only a long-press triggers a toggle — and only after explicit
-confirmation. The same pattern is applied to Cool Recovery. Note: this is
-dashboard-side only — automations and direct service calls bypass it. If
-you want integration-side enforcement, open an issue.
+A normal tap opens the details popup (where you can deliberately toggle,
+change preset, change speed), and only a long-press triggers a toggle —
+and only after explicit confirmation. The same pattern is applied to
+Cool Recovery. Note: this is dashboard-side only — automations and direct
+service calls bypass it. If you want integration-side enforcement,
+open an issue.
 
 ### Diagnostic / debug sensors
 

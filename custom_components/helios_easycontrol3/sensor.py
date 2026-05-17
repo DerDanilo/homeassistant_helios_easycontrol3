@@ -18,6 +18,7 @@ from homeassistant.const import (
     PERCENTAGE,
     REVOLUTIONS_PER_MINUTE,
     UnitOfTemperature,
+    UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
@@ -121,6 +122,25 @@ SENSORS: tuple[_SensorDef, ...] = (
         device_class=SensorDeviceClass.DATE,
         icon="mdi:calendar-alert-outline",
         value_fn=lambda s: s.filter_due_date,
+    ),
+    # Remaining minutes for time-limited modes (0 when not active)
+    _SensorDef(
+        key="boost_remaining_minutes",
+        translation_key="boost_remaining_minutes",
+        icon="mdi:timer-sand",
+        device_class=SensorDeviceClass.DURATION,
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda s: int(s.boost_timer or 0),
+    ),
+    _SensorDef(
+        key="individual_remaining_minutes",
+        translation_key="individual_remaining_minutes",
+        icon="mdi:timer-sand",
+        device_class=SensorDeviceClass.DURATION,
+        native_unit_of_measurement=UnitOfTime.MINUTES,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda s: int(s.fireplace_timer or 0),
     ),
     # Device diagnostics
     _SensorDef(

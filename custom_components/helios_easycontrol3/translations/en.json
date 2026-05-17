@@ -40,6 +40,8 @@
       "co2":                      { "name": "CO2" },
       "humidity_sensor_slot":     { "name": "Humidity Sensor - {slot}" },
       "co2_sensor_slot":          { "name": "CO2 Sensor - {slot}" },
+      "boost_remaining_minutes":  { "name": "Boost - Remaining" },
+      "individual_remaining_minutes": { "name": "Individual - Remaining" },
       "cell_state":               { "name": "Heat Exchanger State" },
       "filter_changed":           { "name": "Filter Change - Last" },
       "filter_due":               { "name": "Filter Change - Next" },
@@ -88,16 +90,10 @@
       "filter_change_interval_months": { "name": "Filter Change - Interval (months)" }
     },
     "switch": {
-      "main_power":                  { "name": "Main Power" },
       "weekly_timer_enabled":        { "name": "Weekly Schedule Enabled" },
       "vacation_active":             { "name": "Vacation Mode Active" },
       "cool_recovery_enabled":       { "name": "Cool Recovery" },
       "cool_recovery_plug_confirmed":{ "name": "Cool Recovery - Plug Confirmed" }
-    },
-    "select": {
-      "mode": {
-        "name": "Operating Mode"
-      }
     },
     "time": {
       "duration_boost":              { "name": "Duration (Boost)" },
@@ -105,6 +101,9 @@
     },
     "button": {
       "reset_filter":                { "name": "Filter Change - Reset to Today" }
+    },
+    "fan": {
+      "ventilation_unit":            { "name": "Ventilation Unit" }
     }
   }
 }

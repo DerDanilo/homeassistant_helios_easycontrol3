@@ -40,6 +40,8 @@
       "co2":                      { "name": "CO₂" },
       "humidity_sensor_slot":     { "name": "Feuchtesensor - {slot}" },
       "co2_sensor_slot":          { "name": "CO₂-Sensor - {slot}" },
+      "boost_remaining_minutes":  { "name": "Intensiv - Verbleibend" },
+      "individual_remaining_minutes": { "name": "Individuell - Verbleibend" },
       "cell_state":               { "name": "Wärmetauscher-Status" },
       "filter_changed":           { "name": "Filterwechsel - Letzter" },
       "filter_due":               { "name": "Filterwechsel - Nächster" },
@@ -88,16 +90,10 @@
       "filter_change_interval_months": { "name": "Filterwechsel - Intervall (Monate)" }
     },
     "switch": {
-      "main_power":                  { "name": "Hauptschalter" },
       "weekly_timer_enabled":        { "name": "Wochenprogramm aktiv" },
       "vacation_active":             { "name": "Urlaubsmodus aktiv" },
       "cool_recovery_enabled":       { "name": "Kälterückgewinnung" },
       "cool_recovery_plug_confirmed":{ "name": "Kälterückgewinnung - Stopfen entfernt" }
-    },
-    "select": {
-      "mode": {
-        "name": "Betriebsmodus"
-      }
     },
     "time": {
       "duration_boost":              { "name": "Dauer (Intensiv)" },
@@ -105,6 +101,9 @@
     },
     "button": {
       "reset_filter":                { "name": "Filterwechsel - Auf heute zurücksetzen" }
+    },
+    "fan": {
+      "ventilation_unit":            { "name": "Lüftungsgerät" }
     }
   }
 }
