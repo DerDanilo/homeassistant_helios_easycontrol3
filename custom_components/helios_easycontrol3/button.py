@@ -34,9 +34,10 @@ class _ResetFilterButton(EasyControlsBaseEntity, ButtonEntity):
     async def async_press(self) -> None:
         today = dt.date.today()
         # Helios stores year as (real - 2000)
-        await self.coordinator.client.write_variables([
+        # Same coalesce key as the date entity — both write the same
+        # registers, latest wins.
+        await self.coordinator.queue_write([
             (A.ADDR_FILTER_CHANGED_DAY, today.day),
             (A.ADDR_FILTER_CHANGED_MONTH, today.month),
             (A.ADDR_FILTER_CHANGED_YEAR, today.year - 2000),
-        ])
-        await self.coordinator.request_refresh_after_write()
+        ], coalesce_key="filter_date")

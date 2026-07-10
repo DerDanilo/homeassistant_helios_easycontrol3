@@ -109,13 +109,14 @@ class EasyControls3Client:
             raise EasyControlsProtocolError(
                 f"Checksum error in READ_DATA response: {words}"
             )
-        # Body: pairs of (addr_echo, value), no header words
+        # Body: pairs of (addr_echo, value), no header words.
+        # Map via the ECHOED address, not by position: if the device ever
+        # skips an unsupported address, positional mapping would shift all
+        # subsequent values onto the wrong variables.
         body = words[2:-1] if len(words) >= 3 else ()
-        result = {}
-        for i, addr in enumerate(addresses):
-            v_idx = 2 * i + 1
-            if v_idx < len(body):
-                result[addr] = body[v_idx]
+        result: dict[int, int] = {}
+        for i in range(0, len(body) - 1, 2):
+            result[int(body[i])] = int(body[i + 1])
         if len(result) != len(addresses):
             LOGGER.warning(
                 "READ_DATA: %d addresses requested, %d values returned",
@@ -132,6 +133,13 @@ class EasyControls3Client:
         """
         if not items:
             return
+        # Forensic trace: every write the integration sends, greppable.
+        # Enable via the integration's "Enable debug logging" button or
+        # logger: custom_components.helios_easycontrol3: debug
+        LOGGER.debug(
+            "WRITE_DATA -> %s",
+            ", ".join(f"{int(a)}={int(v)}" for a, v in items),
+        )
         payload: list[int] = []
         for addr, val in items:
             payload.append(int(addr) & 0xFFFF)

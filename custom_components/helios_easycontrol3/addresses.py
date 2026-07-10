@@ -45,7 +45,7 @@ ADDR_SUPP_FAN_SPEED = 4362       # Supply air RPM
 
 # Status trio for mode detection
 ADDR_STATE = 4609                # 0=HOME, 1=AWAY, 2=BOOST
-ADDR_MODE = 4610                 # 0=NORMAL, ..., 5=OFF
+ADDR_MODE = 4610                 # C_CYC_MODE — see MODE_* enum below; OFF only when == 5
 ADDR_DEFROSTING = 4611
 ADDR_BOOST_TIMER = 4612          # >0 = Boost active, remaining minutes
 ADDR_FIREPLACE_TIMER = 4613      # >0 = Individual mode active, remaining minutes
@@ -180,8 +180,16 @@ STATE_HOME = 0
 STATE_AWAY = 1
 STATE_BOOST = 2
 
+# C_CYC_MODE values. The device's own WebUI treats the unit as switched
+# off ONLY for MODE_OFF (5) — every other value means the unit is
+# running (e.g. DEFROST during a frost-protection cycle).
 MODE_NORMAL = 0
+MODE_TESTING = 1
+MODE_MANUAL = 2
+MODE_DEFROST = 3
+MODE_SELF_TEST = 4
 MODE_OFF = 5
+MODE_EMC_TEST = 6
 
 SIDEDNESS_LEFT = 0
 SIDEDNESS_RIGHT = 1

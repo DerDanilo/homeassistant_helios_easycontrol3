@@ -1,5 +1,57 @@
 # Changelog
 
+## v1.1.2 — No more spurious unit shutdowns; rate-limited writes; instant UI feedback
+
+### Fixed
+
+- **Unit could physically cycle OFF→ON when switching modes from HA**
+  (most visible when switching to Home). Two causes, both fixed:
+  - The on/off state was derived incorrectly: the unit reports several
+    internal modes (e.g. defrosting) that were misread as "switched
+    off". HA then wrapped preset changes into `fan.turn_on`, which
+    re-sent the power-on command into the *running* unit — and that
+    command resets the unit's state machine (fans audibly cycle
+    off/on). On/off is now derived the same way the manufacturer's
+    WebUI does it: only the real "off" state counts as off.
+  - `fan.turn_on` / `fan.turn_off` now verify the actual device state
+    with a fresh read right before sending and skip the power command
+    entirely unless the state really has to change.
+- **Slow state updates after writes** — the post-write refresh chain
+  (0.4 / 1.4 / 3.4 s) was silently swallowed by a coordinator
+  debouncer; mode changes could take up to a minute to show in HA.
+  Refreshes now run as designed; changes reflect within ~4 s.
+- `time` entities: a device value of 1440 min (24:00) showed as
+  "unknown"; it is now clamped to 23:59.
+- Batch reads are mapped via the echoed register address instead of
+  by position (robust against skipped addresses).
+
+### New
+
+- **Write rate limiter** — every UI interaction is accepted instantly;
+  delivery to the unit is spaced ≥2 s with latest-wins coalescing per
+  control. Rapid taps can no longer stress the unit's embedded
+  controller (which could previously reset itself under write bursts).
+- **Optimistic fan state** — preset/power flip immediately in the UI
+  and only snap back to the device-reported state if the unit hasn't
+  confirmed within ~15 s. Buttons never feel "dead" anymore.
+- **`date.<device>_filter_change_date`** — the last-filter-change date
+  is now directly settable, e.g. to correct an accidental filter reset.
+- **Write debug logging** — enable debug logging on the integration to
+  trace exactly what is sent to the unit and when.
+
+### Changed
+
+- Example dashboard: filter-reset card hardened — tapping the icon can
+  no longer trigger the reset without the confirmation dialog
+  (`icon_tap_action: none`); new card for the filter date entity;
+  note about entity slugs on renamed devices.
+
+## v1.1.1 — Hotfix
+
+- Fixed a truncated method name in the number platform that broke
+  setpoint writes.
+- Updated the example dashboard template.
+
 ## v1.1.0 — Fan platform replaces Main Power switch + Mode select
 
 ### New

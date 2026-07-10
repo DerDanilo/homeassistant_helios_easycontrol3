@@ -191,7 +191,7 @@ class _GenericNumber(EasyControlsBaseEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         encoded = self.entity_description.encode_fn(value)
-        await self.coordinator.client.write_variable(
-            self.entity_description.address, encoded
+        await self.coordinator.queue_write(
+            [(self.entity_description.address, encoded)],
+            coalesce_key=f"number_{self.entity_description.key}",
         )
-        await self.coordinator.request_refresh_after_write()

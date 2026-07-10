@@ -26,6 +26,12 @@
 # DEVICE-NAME NAMING:
 # If your KWL is a different model than KWL 250 W (e.g. KWL 300 W ET),
 # replace `helios_kwl_250_w` with your device's actual slug everywhere.
+#
+# RENAMED DEVICES:
+# If you renamed the device in HA, entities added by LATER updates (e.g.
+# `date.…_filterwechsel_datum`) get their slug from the CURRENT device
+# name, while pre-existing entities keep their original slugs. Check
+# the actual entity ids under Settings -> Devices -> your KWL.
 # =========================================================================
 
 views:
@@ -915,6 +921,12 @@ views:
                       button.helios_kwl_250_w_filterwechsel_auf_heute_zurucksetzen
                   confirmation:
                     text: Filterwechsel wirklich auf heute zurücksetzen?
+                # WICHTIG: Ohne explizite icon_tap_action löst ein Tap auf das
+                # ICON den button.press OHNE Bestätigungsdialog aus (Mushroom-
+                # Default-Icon-Action). Deshalb hier hart deaktiviert — der
+                # Reset geht nur über den Kartentext mit Dialog.
+                icon_tap_action:
+                  action: none
                 hold_action:
                   action: none
                 double_tap_action:
@@ -925,6 +937,29 @@ views:
                       border-radius: 24px;
                       background: rgba(20, 80, 20, 0.22);
                       border: 1px solid rgba(76, 175, 80, 0.35);
+                    }
+              - type: custom:mushroom-template-card
+                entity: date.helios_kwl_250_w_filterwechsel_datum
+                primary: Datum korrigieren
+                secondary: >-
+                  {{ states('date.helios_kwl_250_w_filterwechsel_datum') }} ·
+                  Popup
+                icon: mdi:calendar-edit
+                icon_color: amber
+                tap_action:
+                  action: more-info
+                icon_tap_action:
+                  action: more-info
+                hold_action:
+                  action: none
+                double_tap_action:
+                  action: none
+                card_mod:
+                  style: |
+                    ha-card {
+                      border-radius: 24px;
+                      background: rgba(20, 20, 20, 0.35);
+                      border: 1px solid rgba(255, 193, 7, 0.25);
                     }
 
       - type: vertical-stack

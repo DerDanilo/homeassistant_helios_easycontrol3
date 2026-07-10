@@ -102,6 +102,9 @@
     "button": {
       "reset_filter":                { "name": "Filterwechsel - Auf heute zurücksetzen" }
     },
+    "date": {
+      "filter_changed_date":         { "name": "Filterwechsel - Datum" }
+    },
     "fan": {
       "ventilation_unit":            { "name": "Lüftungsgerät" }
     }

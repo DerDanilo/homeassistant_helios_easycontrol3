@@ -85,16 +85,16 @@ class _GenericSwitch(EasyControlsBaseEntity, SwitchEntity):
         return self.entity_description.is_on_fn(self.coordinator.data) if self.coordinator.data else None
 
     async def async_turn_on(self, **kwargs) -> None:
-        await self.coordinator.client.write_variable(
-            self.entity_description.address, self.entity_description.on_value
+        await self.coordinator.queue_write(
+            [(self.entity_description.address, self.entity_description.on_value)],
+            coalesce_key=f"switch_{self.entity_description.key}",
         )
-        await self.coordinator.request_refresh_after_write()
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self.coordinator.client.write_variable(
-            self.entity_description.address, self.entity_description.off_value
+        await self.coordinator.queue_write(
+            [(self.entity_description.address, self.entity_description.off_value)],
+            coalesce_key=f"switch_{self.entity_description.key}",
         )
-        await self.coordinator.request_refresh_after_write()
 
 
 class _PlugConfirmedSwitch(EasyControlsBaseEntity, SwitchEntity):
@@ -155,9 +155,11 @@ class _CoolRecoverySwitch(EasyControlsBaseEntity, SwitchEntity):
                 "Schalter 'Cool Recovery - Plug Confirmed' einschalten "
                 "(physische Stopfen-Entfernung am Gerät bestätigen)."
             )
-        await self.coordinator.client.write_variable(A.ADDR_COOLRECOVERY_DISABLED, 1)
-        await self.coordinator.request_refresh_after_write()
+        await self.coordinator.queue_write(
+            [(A.ADDR_COOLRECOVERY_DISABLED, 1)], coalesce_key="cool_recovery"
+        )
 
     async def async_turn_off(self, **kwargs) -> None:
-        await self.coordinator.client.write_variable(A.ADDR_COOLRECOVERY_DISABLED, 0)
-        await self.coordinator.request_refresh_after_write()
+        await self.coordinator.queue_write(
+            [(A.ADDR_COOLRECOVERY_DISABLED, 0)], coalesce_key="cool_recovery"
+        )

@@ -17,7 +17,10 @@ from .const import DOMAIN
 from .coordinator import EasyControls3Coordinator, KWLSnapshot
 from .entity import EasyControlsBaseEntity
 
-MAX_MIN = 24 * 60  # 24 hours
+# Device max is 1440 min (24 h), but dt.time cannot represent 24:00 —
+# clamp to 23:59 on both read and write (1-min inaccuracy is acceptable;
+# the HA time picker cannot input 24:00 anyway).
+MAX_MIN = 24 * 60 - 1
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -69,6 +72,9 @@ class _GenericTime(EasyControlsBaseEntity, TimeEntity):
         m = self.entity_description.minutes_fn(self.coordinator.data)
         if m is None:
             return None
+        # Device value 1440 (set via WebUI) would raise on dt.time(24, 0)
+        # and show as "unknown" — clamp to 23:59 instead.
+        m = min(int(m), MAX_MIN)
         h = math.floor(m / 60)
         mm = int(m - h * 60)
         try:
@@ -82,7 +88,7 @@ class _GenericTime(EasyControlsBaseEntity, TimeEntity):
             minutes = 1
         if minutes > MAX_MIN:
             minutes = MAX_MIN
-        await self.coordinator.client.write_variable(
-            self.entity_description.address, minutes
+        await self.coordinator.queue_write(
+            [(self.entity_description.address, minutes)],
+            coalesce_key=f"time_{self.entity_description.key}",
         )
-        await self.coordinator.request_refresh_after_write()

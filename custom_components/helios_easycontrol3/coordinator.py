@@ -18,6 +18,7 @@ import asyncio
 import datetime as dt
 import logging
 import struct
+import time
 from collections import deque
 from dataclasses import dataclass, field
 
@@ -28,7 +29,11 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from . import addresses as A
 from .client import EasyControls3Client, EasyControlsProtocolError
-from .const import DEFAULT_SCAN_INTERVAL_SECONDS, DOMAIN
+from .const import (
+    DEFAULT_SCAN_INTERVAL_SECONDS,
+    DOMAIN,
+    WRITE_MIN_INTERVAL_SECONDS,
+)
 from .device_list import model_name, type_name
 
 LOGGER = logging.getLogger(__name__)
@@ -216,6 +221,13 @@ class EasyControls3Coordinator(DataUpdateCoordinator[KWLSnapshot]):
         self._storage_loaded = False
         # Track previous cool_recovery state for transition detection
         self._prev_cool_recovery: bool | None = None
+        # Post-write refresh coalescing (see request_refresh_after_write)
+        self._refresh_chain_task: asyncio.Task | None = None
+        self._last_write_monotonic: float = 0.0
+        # Write rate limiting (see queue_write)
+        self._pending_writes: dict[str, list[tuple[int, int]]] = {}
+        self._write_sender_task: asyncio.Task | None = None
+        self._last_write_sent: float = -WRITE_MIN_INTERVAL_SECONDS
 
     # ----- Persistent storage (plug_confirmed) -----------------------------
     async def _load_storage_once(self) -> None:
@@ -306,7 +318,14 @@ class EasyControls3Coordinator(DataUpdateCoordinator[KWLSnapshot]):
         s.state_code = buf[A.BUF_STATE_BYTE]
         s.boost_timer = buf[A.BUF_BOOST_TIMER_BYTE]
         s.fireplace_timer = buf[A.BUF_FIREPLACE_TIMER_BYTE]
-        s.is_on = bool(buf[A.BUF_ON_OFF_BYTE] == 0)
+        # ON/OFF from the MODE byte (A_CYC_MODE low byte). The WebUI treats
+        # the unit as switched off ONLY for C_CYC_MODE_OFF (5); all other
+        # values (NORMAL=0, TESTING=1, MANUAL=2, DEFROST=3, SELF_TEST=4,
+        # EMC_TEST=6) mean "running". Comparing == 0 misreported e.g. a
+        # defrost cycle as "off", which made HA wrap preset changes into
+        # fan.turn_on(...) -> destructive MODE write -> physical OFF/ON
+        # cycle of the unit (the "shutdown on switch to Home" bug).
+        s.is_on = bool(buf[A.BUF_ON_OFF_BYTE] != A.MODE_OFF)
 
         s.current_fan_speed = buf[A.BUF_FAN_SPEED_BYTE]
         s.home_speed_buf = buf[A.BUF_AT_HOME_FAN_SPEED_BYTE]
@@ -489,19 +508,118 @@ class EasyControls3Coordinator(DataUpdateCoordinator[KWLSnapshot]):
     def serial_str(self) -> str:
         return str(self._snapshot.serial_number) if self._snapshot.serial_number else ""
 
-    async def request_refresh_after_write(self) -> None:
-        """After a write: schedule progressive refresh attempts."""
-        await asyncio.sleep(0.4)
-        await self.async_request_refresh()
-        self.hass.async_create_task(self._delayed_refresh_chain([2.0, 5.0]))
+    # ----- Rate-limited write queue -----------------------------------------
+    async def queue_write(
+        self, items: list[tuple[int, int]], coalesce_key: str = "default"
+    ) -> None:
+        """Accept a write immediately; deliver it rate-limited to the device.
 
-    async def _delayed_refresh_chain(self, delays: list[float]) -> None:
-        for delay in delays:
-            await asyncio.sleep(delay)
+        Semantics ("clicks are always accepted"):
+        - Leading edge: if the device has been idle for at least
+          WRITE_MIN_INTERVAL_SECONDS, the write is sent right away and the
+          call behaves like a direct write (errors propagate to the caller).
+        - Otherwise the write is stored under `coalesce_key` — a newer write
+          with the same key REPLACES the pending one (latest wins, e.g.
+          rapidly tapping through presets sends only the last one) — and a
+          background sender delivers pending writes spaced by the interval.
+          Errors of deferred writes are logged; the post-write refresh
+          reveals the real device state either way.
+
+        Rationale: the KWL's embedded webserver can brown-out (unit
+        physically resets) under write/connection bursts.
+        """
+        items = [(int(a), int(v)) for a, v in items]
+        now = time.monotonic()
+        idle = (now - self._last_write_sent) >= WRITE_MIN_INTERVAL_SECONDS
+        sender_active = self._write_sender_task and not self._write_sender_task.done()
+        if idle and not self._pending_writes and not sender_active:
+            # Block parallel leading-edge sends across the awaits below.
+            self._last_write_sent = now
             try:
-                await self.async_request_refresh()
-            except Exception as e:
-                LOGGER.debug("Delayed refresh failed: %s", e)
+                await self.client.write_variables(items)
+            finally:
+                self._last_write_sent = time.monotonic()
+            await self.request_refresh_after_write()
+            return
+        # Defer: replace any pending write with the same key (latest wins)
+        # and move it to the end of the queue.
+        self._pending_writes.pop(coalesce_key, None)
+        self._pending_writes[coalesce_key] = items
+        LOGGER.debug(
+            "Write '%s' deferred by rate limiter (%d pending)",
+            coalesce_key, len(self._pending_writes),
+        )
+        if not sender_active:
+            self._write_sender_task = self.hass.async_create_task(
+                self._write_sender()
+            )
+
+    async def _write_sender(self) -> None:
+        """Drain pending writes, spaced by WRITE_MIN_INTERVAL_SECONDS."""
+        while self._pending_writes:
+            wait = self._last_write_sent + WRITE_MIN_INTERVAL_SECONDS - time.monotonic()
+            if wait > 0:
+                await asyncio.sleep(wait)
+            if not self._pending_writes:
+                return
+            key = next(iter(self._pending_writes))
+            items = self._pending_writes.pop(key)
+            try:
+                await self.client.write_variables(items)
+            except Exception as err:
+                LOGGER.warning("Deferred write '%s' failed: %s", key, err)
+            self._last_write_sent = time.monotonic()
+            await self.request_refresh_after_write()
+
+    async def async_shutdown(self) -> None:
+        """Cancel background tasks on unload/reload."""
+        for task in (self._refresh_chain_task, self._write_sender_task):
+            if task and not task.done():
+                task.cancel()
+        await super().async_shutdown()
+
+    async def request_refresh_after_write(self) -> None:
+        """After a write: schedule progressive refresh attempts (coalesced).
+
+        Timeline relative to the LAST write:
+        - t ≈ 0.4 s → first refresh (catches direct setpoint writes)
+        - t ≈ 1.4 s → second refresh (catches mode transitions)
+        - t ≈ 3.4 s → third refresh (safety net for slower state updates)
+
+        Coalescing: rapid consecutive writes previously stacked one
+        independent refresh chain PER write. Now there is at most ONE
+        chain; a new write restarts its timeline instead of spawning
+        another (the KWL webserver copes badly with connection churn).
+
+        NOTE: uses async_refresh() (direct), NOT async_request_refresh().
+        The latter runs through the coordinator's Debouncer (10 s cooldown),
+        which swallowed the 1.4 s / 3.4 s refreshes entirely.
+
+        Returns immediately (fire-and-forget) so service calls stay snappy.
+        """
+        self._last_write_monotonic = time.monotonic()
+        if self._refresh_chain_task and not self._refresh_chain_task.done():
+            return  # running chain will restart its timeline automatically
+        self._refresh_chain_task = self.hass.async_create_task(
+            self._refresh_chain()
+        )
+
+    async def _refresh_chain(self) -> None:
+        """One shared post-write refresh chain, anchored to the last write."""
+        while True:
+            anchor = self._last_write_monotonic
+            for delay in (0.4, 1.4, 3.4):
+                wait = anchor + delay - time.monotonic()
+                if wait > 0:
+                    await asyncio.sleep(wait)
+                if self._last_write_monotonic != anchor:
+                    break  # a newer write arrived → restart the timeline
+                try:
+                    await self.async_refresh()
+                except Exception as e:
+                    LOGGER.debug("Post-write refresh failed: %s", e)
+            if self._last_write_monotonic == anchor:
+                return  # chain finished and no new writes came in
 
     # ----- Plug confirmation auto-sync --------------------------------------
     async def _sync_plug_confirmed_with_cool_recovery(self) -> None:

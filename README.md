@@ -136,20 +136,25 @@ add results to the compatibility table below.
   programming is configured in the Helios WebUI.
 - **Vacation mode** — on/off switch in HA; end-date and the mode that runs
   during vacation are configured in the Helios WebUI.
-- **Filter reset button**
+- **Filter reset button** + settable **filter change date** entity
+  (correct the date if the reset was tapped by accident)
 - **Multi-language UI** (English, German) — config flow, options flow and
   all entity names are localised
 
 ## Usage notes
 
-### Writes need a moment to land
+### Writes are rate-limited — tap as fast as you like
 
-After changing a value via HA (e.g. setting Fan Power Level, switching Mode,
-toggling Weekly Schedule), wait **about 3 seconds** before changing the next
-value. The KWL needs time to process the write and our refresh chain
-(0.4s + 2s + 5s) needs that time to confirm the new state back. If you
-fire off multiple writes faster than that, the device may drop intermediate
-values or our coordinator may briefly show stale state.
+Every interaction is accepted by HA immediately. The integration delivers
+writes to the unit with a minimum spacing of ~2 seconds; if you change the
+same control several times in quick succession, only the **latest** value
+is sent (rapidly tapping Home → Away → Boost sends just Boost). The fan
+entity shows your target state immediately and only snaps back to the
+device-reported state if the unit hasn't confirmed it within ~15 seconds.
+
+Background: the unit's embedded controller copes badly with bursts of
+writes/connections (it can even power-cycle itself) — the integration
+smooths bursts out for you, so no manual pacing is needed anymore.
 
 ### Fan entity safety pattern
 
