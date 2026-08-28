@@ -1,5 +1,46 @@
 # Changelog
 
+## v1.1.3 — Example dashboard: no more accidental shutdowns from the mode buttons
+
+### Fixed
+
+- **Example dashboard: tapping the icon of a mode button switched the unit
+  off** instead of changing the preset. Cards with an icon action fall back
+  to Home Assistant's default action for the entity's domain when
+  `icon_tap_action` is not set — and for `fan` that default is `toggle`.
+  The icon handler also stops event propagation, so the card's own
+  `tap_action` (the preset change) never ran. On the large mode tiles the
+  icon is the most likely tap target, which made the unit appear to shut
+  down at random on mode changes, while the very same change made from the
+  entity's more-info dialog always worked.
+  Every card in `examples/dashboard_template.yaml` that is bound to a
+  toggleable entity now sets `icon_tap_action` explicitly.
+- This was the remaining cause behind the shutdown reports that v1.1.2 did
+  not fully resolve. The integration-side guards shipped in v1.1.2 (verify
+  the real device state before sending a power command, rate-limited writes)
+  are unaffected and stay in place — they simply could not prevent a
+  deliberate `fan.toggle` coming from the dashboard.
+
+### New
+
+- Example dashboard: a **"select operating mode"** card directly below the
+  four quick-select tiles. It opens the fan entity's more-info dialog, where
+  all presets and the fan speed can be set, and shows the currently active
+  preset as its subtitle.
+
+### Docs
+
+- README: new section *"Custom cards: always set `icon_tap_action`"* under
+  the accidental-shutdown protection notes.
+- README: Helios KWL 470 W ET (firmware 1.0.23) added to the tested-hardware
+  and compatibility tables — community-confirmed on v1.1.2.
+
+### Notes
+
+- No changes to the integration code in this release; only the bundled
+  example dashboard and the documentation. Updating is worthwhile if you
+  based your dashboard on the template.
+
 ## v1.1.2 — No more spurious unit shutdowns; rate-limited writes; instant UI feedback
 
 ### Fixed

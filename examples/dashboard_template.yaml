@@ -106,6 +106,13 @@ views:
                   data:
                     preset_mode: Home
                   perform_action: fan.set_preset_mode
+                icon_tap_action:
+                  action: perform-action
+                  target:
+                    entity_id: fan.helios_kwl_250_w_luftungsgerat
+                  data:
+                    preset_mode: Home
+                  perform_action: fan.set_preset_mode
                 color: >-
                   {% if state_attr('fan.helios_kwl_250_w_luftungsgerat',
                   'preset_mode') == 'Home' %}
@@ -140,6 +147,13 @@ views:
                   {% endif %}
                 icon: mdi:airplane
                 tap_action:
+                  action: perform-action
+                  target:
+                    entity_id: fan.helios_kwl_250_w_luftungsgerat
+                  data:
+                    preset_mode: Away
+                  perform_action: fan.set_preset_mode
+                icon_tap_action:
                   action: perform-action
                   target:
                     entity_id: fan.helios_kwl_250_w_luftungsgerat
@@ -186,6 +200,13 @@ views:
                   data:
                     preset_mode: Boost
                   perform_action: fan.set_preset_mode
+                icon_tap_action:
+                  action: perform-action
+                  target:
+                    entity_id: fan.helios_kwl_250_w_luftungsgerat
+                  data:
+                    preset_mode: Boost
+                  perform_action: fan.set_preset_mode
                 color: >-
                   {% if state_attr('fan.helios_kwl_250_w_luftungsgerat',
                   'preset_mode') == 'Boost' %}
@@ -226,6 +247,13 @@ views:
                   data:
                     preset_mode: Individual
                   perform_action: fan.set_preset_mode
+                icon_tap_action:
+                  action: perform-action
+                  target:
+                    entity_id: fan.helios_kwl_250_w_luftungsgerat
+                  data:
+                    preset_mode: Individual
+                  perform_action: fan.set_preset_mode
                 color: >-
                   {% if state_attr('fan.helios_kwl_250_w_luftungsgerat',
                   'preset_mode') == 'Individual' %}
@@ -249,6 +277,29 @@ views:
                       {% endif %}
                     }
 
+          - type: custom:mushroom-template-card
+            entity: fan.helios_kwl_250_w_luftungsgerat
+            primary: Betriebsmodus wählen
+            secondary: >-
+              Aktuell {{ state_attr('fan.helios_kwl_250_w_luftungsgerat',
+              'preset_mode') }} · Popup mit allen Modi und Lüfterstufe
+            icon: mdi:tune-variant
+            icon_color: blue
+            tap_action:
+              action: more-info
+            icon_tap_action:
+              action: more-info
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+            card_mod:
+              style: |
+                ha-card {
+                  border-radius: 26px;
+                  background: rgba(20, 20, 20, 0.35);
+                  border: 1px solid rgba(255, 255, 255, 0.08);
+                }
       - type: vertical-stack
         cards:
           - type: custom:mushroom-title-card
@@ -498,6 +549,8 @@ views:
                 fill_container: true
                 tap_action:
                   action: toggle
+                icon_tap_action:
+                  action: toggle
                 card_mod:
                   style: |
                     ha-card {
@@ -526,6 +579,8 @@ views:
                 layout: vertical
                 fill_container: true
                 tap_action:
+                  action: toggle
+                icon_tap_action:
                   action: toggle
                 card_mod:
                   style: |
@@ -846,6 +901,8 @@ views:
               {% endif %}
             tap_action:
               action: toggle
+            icon_tap_action:
+              action: toggle
             card_mod:
               style: |
                 ha-card {
@@ -980,6 +1037,8 @@ views:
                 icon: mdi:air-purifier
                 icon_color: blue
                 tap_action:
+                  action: more-info
+                icon_tap_action:
                   action: more-info
                 card_mod:
                   style: >

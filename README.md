@@ -97,10 +97,10 @@ notes — the source code is the deliverable.
 
 ### Tested hardware
 
-The integration has currently been verified against the following device:
+The integration has currently been verified against the following devices:
 
-- **Helios KWL 250 W**
-- **easyControls firmware 1.0.25**
+- **Helios KWL 250 W** — easyControls firmware 1.0.25 (development device)
+- **Helios KWL 470 W ET** — easyControls firmware 1.0.23 (community-confirmed, v1.1.2)
 
 Other Helios / Vallox MV models with easyControls 3.0 use a comparable
 local interface and may work as well, but this is not guaranteed. Please
@@ -182,6 +182,19 @@ Cool Recovery. Note: this is dashboard-side only — automations and direct
 service calls bypass it. If you want integration-side enforcement,
 open an issue.
 
+#### Custom cards: always set `icon_tap_action`
+
+If you build your own dashboard with Mushroom cards (or any card that has a
+separate icon action), set `icon_tap_action` **explicitly** on every card
+bound to the fan entity. When the key is missing, the card falls back to
+Home Assistant's default icon action for the domain, and for `fan` that
+default is `toggle` — so a tap that lands on the card's icon switches the
+unit off instead of running the card's own `tap_action`. The icon handler
+stops event propagation, so the intended action never runs. On a large
+tile this is easy to hit by accident and looks exactly like the unit
+"randomly" shutting down. The bundled example dashboard sets
+`icon_tap_action` on every such card.
+
 ### Diagnostic / debug sensors
 
 Some sensors are useful for debugging integration health but are noisy:
@@ -243,6 +256,7 @@ HACS will track the GitHub repo and notify you when a new release is tagged
 | Device                                   | Status                       | Tested firmware |
 | ---------------------------------------- | ---------------------------- | --------------- |
 | Helios KWL 250 W                         | ✓ verified                   | 1.0.25          |
+| Helios KWL 470 W ET                      | ✓ community-confirmed        | 1.0.23          |
 | Other Helios KWL with easyControls 3.0   | likely works (same protocol) | —               |
 | Vallox MV / MV-E with easyControls cloud | may work, untested           | —               |
 
